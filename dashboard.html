@@ -19,11 +19,46 @@
 <!-- MAIN -->
 <div class="flex-1 p-4 space-y-4">
 
-<!-- TOP -->
+<!-- HEADER -->
+<div class="flex justify-between items-center">
+
+  <div>
+    <p class="text-lg font-semibold">VM Dashboard COPR</p>
+    <p class="text-xs text-slate-400">Infrastructure Management</p>
+  </div>
+
+  <div class="flex items-center gap-2">
+
+    <!-- ROLE -->
+    <span 
+      class="px-3 py-1 rounded-full text-xs font-semibold"
+      :class="user.role==='admin' ? 'bg-green-600/20 text-green-400' : 'bg-yellow-600/20 text-yellow-300'"
+    >
+      {{ user.role === 'admin' ? 'ADMIN' : 'READ ONLY' }}
+    </span>
+
+    <button @click="logout" class="text-xs text-red-400">
+      Logout
+    </button>
+
+  </div>
+</div>
+
+<!-- READ ONLY WARNING -->
+<div v-if="user.role !== 'admin'" class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-xs p-2 rounded-lg">
+⚠️ Mode Read Only - Anda tidak memiliki akses edit
+</div>
+
+<!-- SEARCH + ADD -->
 <div class="flex gap-2">
 <input v-model="search" class="input flex-1" placeholder="Search VM / IP"/>
 
-<button v-if="user.role==='admin'" @click="openForm" class="btn">
+<button 
+@click="openForm"
+class="btn"
+:disabled="user.role !== 'admin'"
+:class="user.role !== 'admin' ? 'opacity-50 cursor-not-allowed' : ''"
+>
 + Add VM
 </button>
 </div>
@@ -144,7 +179,6 @@ Disk {{i+1}}: {{d}}
 <input v-model="form.vlan" placeholder="VLAN" class="input"/>
 <input v-model="form.storage" placeholder="Storage" class="input"/>
 
-<!-- DISK -->
 <div v-for="(d,i) in form.disk" class="flex gap-2">
 <input v-model="form.disk[i]" class="input"/>
 <button @click="removeDisk(i)">X</button>
@@ -193,7 +227,12 @@ return (
 }
 },
 
-mounted(){this.loadVM()},
+mounted(){
+if(!localStorage.getItem("role")){
+  window.location="index.html"
+}
+this.loadVM()
+},
 
 methods:{
 
@@ -219,19 +258,16 @@ this.showForm=true
 },
 
 async saveVM(){
+const url=this.editMode?API+"/vms/"+this.form.id:API+"/vms"
 
-const options={
+await fetch(url,{
 method:this.editMode?"PUT":"POST",
 headers:{
 "Content-Type":"application/json",
 "role":this.user.role
 },
 body:JSON.stringify(this.form)
-}
-
-const url=this.editMode?API+"/vms/"+this.form.id:API+"/vms"
-
-await fetch(url,options)
+})
 
 this.showForm=false
 this.loadVM()
@@ -249,7 +285,12 @@ this.loadVM()
 },
 
 addDisk(){this.form.disk.push("")},
-removeDisk(i){this.form.disk.splice(i,1)}
+removeDisk(i){this.form.disk.splice(i,1)},
+
+logout(){
+localStorage.clear()
+window.location="index.html"
+}
 
 }
 
