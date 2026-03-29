@@ -5,8 +5,6 @@
 
 <script src="https://unpkg.com/vue@3"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-
-<!-- XLSX LIB -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 </head>
@@ -21,7 +19,6 @@
 
   <div class="flex gap-2 items-center">
 
-    <!-- IMPORT EXCEL -->
     <label class="btn-main cursor-pointer text-xs">
       Import Excel
       <input type="file" @change="importExcel" hidden accept=".xlsx,.xls"/>
@@ -34,6 +31,23 @@
     </button>
 
   </div>
+</div>
+
+<!-- 🔥 PROGRESS BAR -->
+<div v-if="loading" class="bg-slate-900 border border-slate-800 p-3 rounded-xl">
+
+  <div class="flex justify-between text-xs mb-1">
+    <span>{{progressText}}</span>
+    <span>{{progress}}%</span>
+  </div>
+
+  <div class="w-full bg-slate-700 rounded-full h-2">
+    <div 
+      class="bg-blue-500 h-2 rounded-full transition-all duration-300"
+      :style="{width: progress + '%'}"
+    ></div>
+  </div>
+
 </div>
 
 <!-- LIST VM -->
@@ -160,7 +174,12 @@ return{
 vms:[],
 showForm:false,
 editMode:false,
-form:{disk:[]}
+form:{disk:[]},
+
+// 🔥 NEW STATE
+loading:false,
+progress:0,
+progressText:""
 }
 },
 
@@ -228,17 +247,23 @@ localStorage.clear()
 window.location="index.html"
 },
 
-// ================= IMPORT EXCEL =================
+// ================= IMPORT EXCEL (UPGRADED) =================
 async importExcel(e){
 
 const file = e.target.files[0]
 if(!file) return
+
+this.loading = true
+this.progress = 0
+this.progressText = "Reading file..."
 
 const data = await file.arrayBuffer()
 const workbook = XLSX.read(data)
 
 const sheet = workbook.Sheets[workbook.SheetNames[0]]
 const json = XLSX.utils.sheet_to_json(sheet)
+
+this.progressText = "Processing..."
 
 const payload = json.map(row=>{
 
@@ -260,25 +285,47 @@ disk: []
 
 Object.keys(row).forEach(k=>{
 if(k.toLowerCase().includes("disk") && row[k]){
-vm.disk.push(String(row[k]))
+vm.disk.push(parseInt(row[k]))
 }
 })
 
 return vm
 })
 
-// 🚀 KIRIM SEKALI
+// 🔥 CHUNK UPLOAD
+const chunkSize = 500
+let uploaded = 0
+
+for(let i=0; i<payload.length; i+=chunkSize){
+
+const chunk = payload.slice(i, i+chunkSize)
+
+this.progressText = `Uploading ${uploaded}/${payload.length}`
+
 await fetch(API+"/vms/bulk",{
 method:"POST",
 headers:{
 "Content-Type":"application/json",
 "role":"admin"
 },
-body:JSON.stringify(payload)
+body:JSON.stringify(chunk)
 })
 
-alert("Import selesai 🚀")
+uploaded += chunk.length
+
+this.progress = Math.round((uploaded / payload.length) * 100)
+}
+
+// DONE
+this.progressText = "Selesai 🚀"
+this.progress = 100
+
+setTimeout(()=>{
+this.loading = false
+},1000)
+
 this.loadVM()
+
 }
 
 }
@@ -297,10 +344,15 @@ border-radius:8px;
 }
 
 .card{
-background:#020617;
+background:linear-gradient(145deg,#020617,#020617);
 border:1px solid #1e293b;
 border-radius:12px;
 padding:12px;
+transition:0.2s;
+}
+
+.card:hover{
+border-color:#2563eb;
 }
 
 .btn-main{
