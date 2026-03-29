@@ -15,8 +15,10 @@
   <!-- HEADER -->
   <div class="flex justify-between items-center">
     <div>
-      <h1 class="text-xl font-bold">Dashboard</h1>
-      <p class="text-sm text-slate-400">Welcome, {{ user.name }}</p>
+      <h1 class="text-xl font-bold">VM Dashboard</h1>
+      <p class="text-sm text-slate-400">
+        {{ user.name }} ({{ user.role }})
+      </p>
     </div>
 
     <button @click="logout" class="text-red-400 text-sm">
@@ -27,52 +29,190 @@
   <!-- SEARCH -->
   <input v-model="search" placeholder="Search VM / IP..." class="input w-full"/>
 
-  <!-- EMPTY STATE -->
-  <div class="text-center text-slate-500 mt-10">
-    Belum ada data VM 🚀
+  <!-- ADD BUTTON -->
+  <button 
+    v-if="user.role === 'admin'" 
+    @click="toggleForm"
+    class="btn">
+    {{ showForm ? "Close Form" : "+ Add VM" }}
+  </button>
+
+  <!-- FORM -->
+  <div v-if="showForm" class="bg-slate-900 p-4 rounded-xl space-y-2">
+
+    <input v-model="form.name" placeholder="VM Name" class="input"/>
+    <input v-model="form.ip" placeholder="IP Address" class="input"/>
+    <input v-model="form.cluster" placeholder="Cluster" class="input"/>
+
+    <button @click="addVM" class="btn">Save</button>
+
+  </div>
+
+  <!-- TABLE -->
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+
+      <thead>
+        <tr class="border-b border-slate-700 text-left">
+          <th class="p-2">Name</th>
+          <th class="p-2">IP</th>
+          <th class="p-2">Cluster</th>
+          <th class="p-2" v-if="user.role==='admin'">Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr 
+          v-for="vm in filteredVMs" 
+          :key="vm.id"
+          class="border-b border-slate-800"
+        >
+          <td class="p-2">{{ vm.name }}</td>
+          <td class="p-2 text-blue-400">{{ vm.ip }}</td>
+          <td class="p-2">{{ vm.cluster }}</td>
+
+          <td class="p-2" v-if="user.role==='admin'">
+            <button @click="deleteVM(vm.id)" class="text-red-400">
+              Delete
+            </button>
+          </td>
+        </tr>
+      </tbody>
+
+    </table>
+  </div>
+
+  <!-- EMPTY -->
+  <div v-if="filteredVMs.length === 0" class="text-center text-slate-500 mt-6">
+    Tidak ada data VM
   </div>
 
 </div>
 
 <script>
+const API = "https://worker-dashboard.jihadwajib68.workers.dev"
 const { createApp } = Vue
 
 createApp({
-  data() {
-    return {
-      user: {},
-      search: ""
-    }
-  },
 
-  mounted() {
-    const data = localStorage.getItem("user")
+data(){
+return{
+  user:{},
+  vms:[],
+  search:"",
+  showForm:false,
 
-    if (!data) {
-      window.location.href = "index.html"
-      return
-    }
-
-    this.user = JSON.parse(data)
-  },
-
-  methods: {
-
-    logout() {
-      localStorage.clear()
-      window.location.href = "index.html"
-    }
-
+  form:{
+    name:"",
+    ip:"",
+    cluster:""
   }
+}
+},
+
+computed:{
+filteredVMs(){
+  return this.vms.filter(vm =>
+    (vm.name || "").toLowerCase().includes(this.search.toLowerCase()) ||
+    (vm.ip || "").includes(this.search)
+  )
+}
+},
+
+mounted(){
+  const data = localStorage.getItem("user")
+
+  if(!data){
+    window.location.href = "index.html"
+    return
+  }
+
+  this.user = JSON.parse(data)
+  this.loadVM()
+},
+
+methods:{
+
+toggleForm(){
+  this.showForm = !this.showForm
+},
+
+async loadVM(){
+  try{
+    const res = await fetch(API + "/vms")
+    const data = await res.json()
+
+    this.vms = Array.isArray(data) ? data : []
+  }catch{
+    alert("Gagal load data VM")
+  }
+},
+
+async addVM(){
+  if(!this.form.name || !this.form.ip){
+    alert("Isi minimal name & ip")
+    return
+  }
+
+  try{
+    await fetch(API + "/vms",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify(this.form)
+    })
+
+    this.showForm = false
+    this.form = {name:"",ip:"",cluster:""}
+
+    this.loadVM()
+
+  }catch{
+    alert("Gagal tambah VM")
+  }
+},
+
+async deleteVM(id){
+  if(!confirm("Hapus VM ini?")) return
+
+  try{
+    await fetch(API + "/vms/"+id,{
+      method:"DELETE"
+    })
+
+    this.loadVM()
+
+  }catch{
+    alert("Gagal delete")
+  }
+},
+
+logout(){
+  localStorage.clear()
+  window.location.href = "index.html"
+}
+
+}
+
 }).mount("#app")
 </script>
 
 <style>
 .input{
+  width:100%;
   padding:12px;
   background:#020617;
   border:1px solid #1e293b;
   border-radius:10px;
+}
+
+.btn{
+  width:100%;
+  background:#2563eb;
+  padding:12px;
+  border-radius:10px;
+  font-weight:bold;
 }
 </style>
 
