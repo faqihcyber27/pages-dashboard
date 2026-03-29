@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script src="https://unpkg.com/vue@3"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-[#020617] text-white">
+
+<div id="app" class="p-4 space-y-4">
+
+<h1 class="text-lg font-bold">Admin Dashboard</h1>
+
+<button @click="openForm" class="btn w-full">+ Add VM</button>
+
+<table class="w-full text-xs">
+<tr>
+<th>Name</th><th>IP</th><th>CPU</th><th>Mem</th><th>Action</th>
+</tr>
+
+<tr v-for="vm in vms">
+<td>{{vm.name}}</td>
+<td>{{vm.ip}}</td>
+<td>{{vm.cpu}}</td>
+<td>{{vm.memory}}</td>
+<td>
+<button @click="edit(vm)">Edit</button>
+<button @click="del(vm.id)">Del</button>
+</td>
+</tr>
+</table>
+
+<!-- MODAL -->
+<div v-if="showForm" class="fixed inset-0 bg-black/70 flex items-center justify-center">
+<div class="bg-slate-900 p-4 rounded space-y-2 w-80">
+
+<input v-model="form.name" placeholder="Name" class="input"/>
+<input v-model="form.ip" placeholder="IP" class="input"/>
+<input v-model="form.cpu" placeholder="CPU" class="input"/>
+<input v-model="form.memory" placeholder="Memory" class="input"/>
+
+<button @click="saveVM" class="btn">Save</button>
+
+</div>
+</div>
+
+</div>
+
+<script>
+const API="https://worker-dashboard.jihadwajib68.workers.dev"
+
+Vue.createApp({
+data(){
+return{
+vms:[],
+showForm:false,
+editMode:false,
+form:{}
+}
+},
+
+mounted(){
+this.loadVM()
+},
+
+methods:{
+
+async loadVM(){
+const r=await fetch(API+"/vms")
+this.vms=await r.json()
+},
+
+openForm(){
+this.editMode=false
+this.form={}
+this.showForm=true
+},
+
+edit(vm){
+this.editMode=true
+this.form={...vm}
+this.showForm=true
+},
+
+async saveVM(){
+
+const url=this.editMode?API+"/vms/"+this.form.id:API+"/vms"
+
+await fetch(url,{
+method:this.editMode?"PUT":"POST",
+headers:{
+"Content-Type":"application/json",
+"role":"admin"
+},
+body:JSON.stringify(this.form)
+})
+
+this.showForm=false
+this.loadVM()
+},
+
+async del(id){
+await fetch(API+"/vms/"+id,{
+method:"DELETE",
+headers:{ "role":"admin" }
+})
+this.loadVM()
+}
+
+}
+}).mount("#app")
+</script>
+
+<style>
+.input{width:100%;padding:10px;background:#020617;border:1px solid #1e293b}
+.btn{background:#2563eb;padding:10px;border-radius:8px}
+</style>
+
+</body>
+</html>
