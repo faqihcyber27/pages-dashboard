@@ -113,16 +113,18 @@ async login() {
 
     const data = await res.json()
 
+    console.log("LOGIN:", data)
+
     if (data.error) {
       alert(data.error)
       return
     }
 
-    // 🔥 SIMPAN USER
-    localStorage.setItem("user", JSON.stringify(data.user))
+    // 🔥 FIX: SIMPAN ROLE LANGSUNG
+    localStorage.setItem("role", data.role)
 
-    // 🔥 REDIRECT SESUAI ROLE
-    if (data.user.role === "admin") {
+    // 🔥 REDIRECT
+    if (data.role === "admin") {
       window.location = "dashboard-admin.html"
     } else {
       window.location = "dashboard-user.html"
@@ -130,6 +132,7 @@ async login() {
 
   } catch (err) {
     alert("Server error")
+    console.error(err)
   }
 },
 
