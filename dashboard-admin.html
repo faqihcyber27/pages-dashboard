@@ -5,6 +5,10 @@
 
 <script src="https://unpkg.com/vue@3"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+
+<!-- XLSX LIB -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 </head>
 
 <body class="bg-[#020617] text-white">
@@ -15,18 +19,29 @@
 <div class="flex justify-between items-center">
   <h1 class="text-xl font-bold">Admin Dashboard</h1>
 
-  <div class="flex gap-2">
+  <div class="flex gap-2 items-center">
+
+    <!-- IMPORT EXCEL -->
+    <label class="btn-main cursor-pointer text-xs">
+      Import Excel
+      <input type="file" @change="importExcel" hidden accept=".xlsx,.xls"/>
+    </label>
+
     <button @click="openForm" class="btn-main">+ Add VM</button>
-    <button @click="logout" class="text-red-400 text-sm">Logout</button>
+
+    <button @click="logout" class="text-red-400 text-sm">
+      Logout
+    </button>
+
   </div>
 </div>
 
-<!-- TABLE -->
+<!-- LIST VM -->
 <div class="space-y-3">
 
 <div v-for="vm in vms" class="card">
 
-<div class="flex justify-between items-start">
+<div class="flex justify-between">
 
 <div>
 <p class="font-semibold text-sm">{{vm.name}}</p>
@@ -40,7 +55,7 @@
 
 </div>
 
-<div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+<div class="grid grid-cols-2 gap-2 mt-2 text-xs">
 <div>CPU: {{vm.cpu}}</div>
 <div>Mem: {{vm.memory}} GB</div>
 <div>Env: {{vm.environment}}</div>
@@ -60,7 +75,6 @@
 {{editMode ? "Edit VM" : "Add VM"}}
 </h2>
 
-<!-- BASIC -->
 <div class="grid grid-cols-2 gap-2">
 
 <input v-model="form.name" placeholder="Name" class="input"/>
@@ -78,7 +92,6 @@
 
 </div>
 
-<!-- INFRA -->
 <div class="grid grid-cols-2 gap-2">
 
 <input v-model="form.function" placeholder="Function" class="input"/>
@@ -91,9 +104,6 @@
 
 </div>
 
-<!-- SYSTEM -->
-<div class="space-y-2">
-
 <select v-model="form.os" class="input">
 <option disabled value="">Select OS</option>
 
@@ -104,20 +114,16 @@
 <option>Microsoft Windows Server 2016 (64-bit)</option>
 <option>Microsoft Windows Server 2019 (64-bit)</option>
 <option>Microsoft Windows Server 2022 (64-bit)</option>
-
 </select>
 
 <input v-model="form.vlan" placeholder="VLAN" class="input"/>
 <input v-model="form.storage" placeholder="Storage" class="input"/>
 
-</div>
-
 <!-- DISK -->
 <div>
+<p class="text-xs text-slate-400">Disk</p>
 
-<p class="text-xs text-slate-400 mb-1">Disk</p>
-
-<div v-for="(d,i) in form.disk" class="flex gap-2 mb-1">
+<div v-for="(d,i) in form.disk" class="flex gap-2">
 <input v-model="form.disk[i]" class="input"/>
 <button @click="removeDisk(i)" class="text-red-400">X</button>
 </div>
@@ -125,10 +131,8 @@
 <button @click="addDisk" class="text-blue-400 text-sm">
 + Add Disk
 </button>
-
 </div>
 
-<!-- ACTION -->
 <div class="flex gap-2 pt-2">
 
 <button @click="saveVM" class="btn-main flex-1">
@@ -222,6 +226,59 @@ this.form.disk.splice(i,1)
 logout(){
 localStorage.clear()
 window.location="index.html"
+},
+
+// ================= IMPORT EXCEL =================
+async importExcel(e){
+
+const file = e.target.files[0]
+if(!file) return
+
+const data = await file.arrayBuffer()
+const workbook = XLSX.read(data)
+
+const sheet = workbook.Sheets[workbook.SheetNames[0]]
+const json = XLSX.utils.sheet_to_json(sheet)
+
+for(const row of json){
+
+let vm = {
+name: row.name || "",
+ip: row.ip || "",
+environment: row.environment || "",
+platform: row.platform || "",
+function: row.function || "",
+cluster: row.cluster || "",
+host: row.host || "",
+cpu: row.cpu || "",
+memory: row.memory || "",
+os: row.os || "",
+vlan: row.vlan || "",
+storage: row.storage || "",
+disk: []
+}
+
+// HANDLE MULTI DISK
+Object.keys(row).forEach(k=>{
+if(k.toLowerCase().includes("disk") && row[k]){
+vm.disk.push(String(row[k]))
+}
+})
+
+await fetch(API+"/vms",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"role":"admin"
+},
+body:JSON.stringify(vm)
+})
+
+}
+
+alert("Import Excel berhasil 🚀")
+this.loadVM()
+
 }
 
 }
