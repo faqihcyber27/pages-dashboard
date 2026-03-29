@@ -60,9 +60,36 @@ return {
 }
 },
 
+async mounted() {
+  const token = localStorage.getItem("token")
+  if (!token) return
+
+  try {
+    const res = await fetch(API + "/api/me", {
+      headers: {
+        Authorization: "Bearer " + token
+      }
+    })
+
+    if (res.ok) {
+      window.location = "dashboard.html"
+    } else {
+      localStorage.clear()
+    }
+
+  } catch {
+    localStorage.clear()
+  }
+},
+
 methods: {
 
 async login() {
+  if (!this.email || !this.password) {
+    alert("Isi email & password")
+    return
+  }
+
   try {
     const res = await fetch(API + "/api/login", {
       method: "POST",
@@ -76,7 +103,6 @@ async login() {
     })
 
     const data = await res.json()
-
     console.log("LOGIN:", data)
 
     if (!res.ok) {
@@ -87,6 +113,8 @@ async login() {
     localStorage.setItem("token", data.token)
     localStorage.setItem("role", data.role)
 
+    alert("Login berhasil")
+
     window.location = "dashboard.html"
 
   } catch (err) {
@@ -95,6 +123,11 @@ async login() {
 },
 
 async register() {
+  if (!this.name || !this.email || !this.password) {
+    alert("Lengkapi semua field")
+    return
+  }
+
   try {
     const res = await fetch(API + "/api/register", {
       method: "POST",
@@ -109,6 +142,7 @@ async register() {
     })
 
     const data = await res.json()
+    console.log("REGISTER:", data)
 
     if (!res.ok) {
       alert(data.error || "Register gagal")
