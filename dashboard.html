@@ -12,59 +12,25 @@
 <div id="app" class="flex min-h-screen">
 
 <!-- SIDEBAR -->
-<div class="w-16 bg-[#020617] border-r border-slate-800 flex flex-col items-center py-4">
+<div class="w-16 border-r border-slate-800 flex items-center justify-center">
 ⚡
 </div>
 
 <!-- MAIN -->
 <div class="flex-1 p-4 space-y-4">
 
-<!-- TOP BAR -->
+<!-- TOP -->
 <div class="flex gap-2">
-
-<input v-model="search" placeholder="Search VM / IP..."
-class="input flex-1"/>
-
-<label class="file">
-📂 CSV
-<input type="file" @change="importCSV" hidden>
-</label>
-
-</div>
-
-<!-- SUMMARY -->
-<div class="grid grid-cols-3 gap-3">
-
-<div class="card">
-<p>Total</p>
-<p class="text-xl font-bold">{{vms.length}}</p>
-</div>
-
-<div class="card border border-green-500/40">
-<p>PROD</p>
-<p class="text-xl text-green-400">{{countEnv('PRODUCTION')}}</p>
-</div>
-
-<div class="card border border-yellow-500/40">
-<p>GO-PROD</p>
-<p class="text-xl text-yellow-400">{{countEnv('GO-PRODUCTION')}}</p>
-</div>
-
+<input v-model="search" class="input flex-1" placeholder="Search VM / IP"/>
+<button @click="openForm" class="btn">+ Add VM</button>
 </div>
 
 <!-- FILTER -->
 <div class="flex gap-2 text-xs">
-
 <button @click="filterEnv='ALL'" :class="chip('ALL')">ALL</button>
 <button @click="filterEnv='PRODUCTION'" :class="chip('PRODUCTION')">PROD</button>
 <button @click="filterEnv='GO-PRODUCTION'" :class="chip('GO-PRODUCTION')">GO-PROD</button>
-
 </div>
-
-<!-- ADD -->
-<button @click="openForm" class="btn">
-+ Add VM
-</button>
 
 <!-- TABLE -->
 <div class="table-wrap">
@@ -76,8 +42,14 @@ class="input flex-1"/>
 <th>VM</th>
 <th>ENV</th>
 <th>PLATFORM</th>
+<th>FUNCTION</th>
 <th>CPU</th>
 <th>MEM</th>
+<th>CLUSTER</th>
+<th>HOST</th>
+<th>OS</th>
+<th>VLAN</th>
+<th>STORAGE</th>
 <th>DISK</th>
 <th>ACT</th>
 </tr>
@@ -94,30 +66,32 @@ class="input flex-1"/>
 
 <td>
 <span class="badge"
-:class="{
-'bg-green-500/20 text-green-400': vm.environment==='PRODUCTION',
-'bg-yellow-500/20 text-yellow-400': vm.environment==='GO-PRODUCTION'
-}">
+:class="vm.environment==='PRODUCTION'?'prod':'goprod'">
 {{vm.environment}}
 </span>
 </td>
 
-<td class="text-blue-400">{{vm.platform}}</td>
+<td class="blue">{{vm.platform}}</td>
+<td>{{vm.function}}</td>
 
-<td class="font-bold">{{vm.cpu}}</td>
+<td class="bold">{{vm.cpu}}</td>
 <td>{{vm.memory}}</td>
 
+<td>{{vm.cluster}}</td>
+<td class="small">{{vm.host}}</td>
+<td>{{vm.os}}</td>
+<td>{{vm.vlan}}</td>
+<td>{{vm.storage}}</td>
+
 <td>
-<div class="flex flex-wrap gap-1">
 <span v-for="(d,i) in vm.disk" class="disk">
 {{d}}
 </span>
-</div>
 </td>
 
 <td>
-<button @click="edit(vm)" class="edit">Edit</button>
-<button @click="del(vm.id)" class="del">X</button>
+<button @click="edit(vm)" class="edit">✏️</button>
+<button @click="del(vm.id)" class="del">🗑️</button>
 </td>
 
 </tr>
@@ -126,6 +100,48 @@ class="input flex-1"/>
 
 </table>
 
+</div>
+
+<!-- MODAL -->
+<div v-if="showForm" class="fixed inset-0 bg-black/70 flex items-center justify-center">
+
+<div class="bg-slate-900 p-4 rounded-xl w-80 space-y-2">
+
+<h2>{{editMode?'Edit':'Add'}} VM</h2>
+
+<input v-model="form.name" placeholder="Name" class="input"/>
+<input v-model="form.ip" placeholder="IP" class="input"/>
+
+<select v-model="form.environment" class="input">
+<option>PRODUCTION</option>
+<option>GO-PRODUCTION</option>
+</select>
+
+<select v-model="form.platform" class="input">
+<option>OLVM</option>
+<option>VMWARE</option>
+</select>
+
+<input v-model="form.function" placeholder="Function" class="input"/>
+<input v-model="form.cluster" placeholder="Cluster" class="input"/>
+<input v-model="form.host" placeholder="Host" class="input"/>
+<input v-model="form.cpu" placeholder="CPU" class="input"/>
+<input v-model="form.memory" placeholder="Memory" class="input"/>
+<input v-model="form.os" placeholder="OS" class="input"/>
+<input v-model="form.vlan" placeholder="VLAN" class="input"/>
+<input v-model="form.storage" placeholder="Storage" class="input"/>
+
+<div v-for="(d,i) in form.disk" class="flex gap-2">
+<input v-model="form.disk[i]" class="input"/>
+<button @click="removeDisk(i)">X</button>
+</div>
+
+<button @click="addDisk">+ Disk</button>
+
+<button @click="saveVM" class="btn">Save</button>
+<button @click="showForm=false" class="text-red-400">Close</button>
+
+</div>
 </div>
 
 </div>
@@ -141,7 +157,10 @@ data(){
 return{
 vms:[],
 search:"",
-filterEnv:"ALL"
+filterEnv:"ALL",
+showForm:false,
+editMode:false,
+form:{disk:[]}
 }
 },
 
@@ -165,19 +184,50 @@ const r=await fetch(API+"/vms")
 this.vms=await r.json()
 },
 
-countEnv(e){
-return this.vms.filter(v=>v.environment===e).length
-},
-
 chip(e){
-return this.filterEnv===e
-? "chip active"
-: "chip"
+return this.filterEnv===e ? "chip active":"chip"
 },
 
-openForm(){alert("modal next step")},
-edit(){alert("edit next step")},
-del(){alert("delete next step")}
+openForm(){
+this.editMode=false
+this.form={disk:[]}
+this.showForm=true
+},
+
+edit(vm){
+this.editMode=true
+this.form=JSON.parse(JSON.stringify(vm))
+this.showForm=true
+},
+
+async saveVM(){
+
+if(this.editMode){
+await fetch(API+"/vms/"+this.form.id,{
+method:"PUT",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(this.form)
+})
+}else{
+await fetch(API+"/vms",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(this.form)
+})
+}
+
+this.showForm=false
+this.loadVM()
+},
+
+async del(id){
+if(!confirm("Delete?")) return
+await fetch(API+"/vms/"+id,{method:"DELETE"})
+this.loadVM()
+},
+
+addDisk(){this.form.disk.push("")},
+removeDisk(i){this.form.disk.splice(i,1)}
 
 }
 
@@ -185,89 +235,20 @@ del(){alert("delete next step")}
 </script>
 
 <style>
-.input{
-padding:10px;
-background:#020617;
-border:1px solid #1e293b;
-border-radius:8px;
-}
-
-.btn{
-background:linear-gradient(90deg,#2563eb,#1d4ed8);
-padding:12px;
-border-radius:10px;
-font-weight:bold;
-}
-
-.card{
-background:#020617;
-padding:12px;
-border-radius:12px;
-border:1px solid #1e293b;
-}
-
-.table-wrap{
-background:#020617;
-border-radius:12px;
-overflow:hidden;
-border:1px solid #1e293b;
-}
-
-.table{
-width:100%;
-font-size:12px;
-}
-
-th{
-text-align:left;
-padding:10px;
-color:#94a3b8;
-background:#020617;
-}
-
-td{
-padding:10px;
-border-top:1px solid #1e293b;
-}
-
-tr:hover{
-background:#020617cc;
-}
-
-.badge{
-padding:4px 8px;
-border-radius:6px;
-font-size:10px;
-}
-
-.disk{
-background:#020617;
-border:1px solid #334155;
-padding:2px 6px;
-border-radius:6px;
-font-size:10px;
-}
-
+.input{padding:10px;background:#020617;border:1px solid #1e293b;border-radius:8px;width:100%}
+.btn{background:#2563eb;padding:10px;border-radius:8px;width:100%}
+.table-wrap{background:#020617;border-radius:12px;overflow:hidden;border:1px solid #1e293b}
+.table{width:100%;font-size:11px}
+th{padding:10px;color:#94a3b8;background:#020617;position:sticky;top:0}
+td{padding:10px;border-top:1px solid #1e293b}
+.badge{padding:4px 8px;border-radius:6px;font-size:10px}
+.prod{background:#022c22;color:#4ade80}
+.goprod{background:#3f1d02;color:#facc15}
+.disk{background:#020617;border:1px solid #334155;padding:2px 6px;border-radius:6px;font-size:10px}
 .edit{color:#3b82f6}
 .del{color:#ef4444}
-
-.chip{
-padding:6px 10px;
-background:#020617;
-border-radius:6px;
-border:1px solid #1e293b;
-}
-
-.active{
-background:#2563eb;
-}
-
-.file{
-background:#020617;
-padding:10px;
-border-radius:8px;
-border:1px solid #1e293b;
-}
+.chip{padding:6px 10px;background:#020617;border-radius:6px;border:1px solid #1e293b}
+.active{background:#2563eb}
 </style>
 
 </body>
