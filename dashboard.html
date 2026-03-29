@@ -12,71 +12,49 @@
 <div id="app" class="flex min-h-screen">
 
 <!-- SIDEBAR -->
-<div class="w-20 bg-slate-900 flex flex-col items-center py-4 space-y-6">
-
-<div class="text-xl font-bold">⚡</div>
-
-<div class="text-slate-400 text-xs text-center">
-VM
-</div>
-
+<div class="w-20 bg-slate-900 flex flex-col items-center py-4">
+⚡
 </div>
 
 <!-- MAIN -->
 <div class="flex-1 p-4 space-y-4">
 
-<!-- TOPBAR -->
-<div class="flex justify-between items-center">
-
-<input v-model="search" placeholder="Search VM / IP..."
-class="input w-2/3"/>
-
-<button @click="logout" class="text-red-400 text-sm">Logout</button>
-
-</div>
-
-<!-- SUMMARY -->
-<div class="grid grid-cols-3 gap-3">
-
-<div class="card">
-<p>Total VM</p>
-<p class="text-2xl font-bold">{{ vms.length }}</p>
-</div>
-
-<div class="card border border-green-500">
-<p>PROD</p>
-<p class="text-2xl text-green-400">{{ countEnv('PROD') }}</p>
-</div>
-
-<div class="card border border-blue-500">
-<p>DEV</p>
-<p class="text-2xl text-blue-400">{{ countEnv('DEV') }}</p>
-</div>
-
+<!-- TOP -->
+<div class="flex justify-between">
+<input v-model="search" class="input w-2/3" placeholder="Search"/>
+<input type="file" @change="importCSV"/>
 </div>
 
 <!-- FILTER -->
-<div class="flex gap-2 text-sm">
-
+<div class="flex gap-2">
 <button @click="filterEnv='ALL'" class="chip">ALL</button>
-<button @click="filterEnv='PROD'" class="chip">PROD</button>
-<button @click="filterEnv='DEV'" class="chip">DEV</button>
-<button @click="filterEnv='UAT'" class="chip">UAT</button>
-
+<button @click="filterEnv='PRODUCTION'" class="chip">PROD</button>
+<button @click="filterEnv='GO-PRODUCTION'" class="chip">GO-PROD</button>
 </div>
 
-<!-- ADD BUTTON -->
-<button v-if="user.role==='admin'" @click="showForm=!showForm" class="btn">
-+ Add VM
-</button>
+<button @click="openForm()" class="btn">+ Add VM</button>
 
-<!-- FORM -->
-<div v-if="showForm" class="bg-slate-900 p-4 rounded-xl space-y-2">
+<!-- FORM MODAL -->
+<div v-if="showForm" class="fixed inset-0 bg-black/70 flex items-center justify-center">
+
+<div class="bg-slate-900 p-4 rounded-xl w-80 space-y-2">
+
+<h2 class="font-bold">{{editMode?"Edit":"Add"}} VM</h2>
 
 <input v-model="form.name" placeholder="Name" class="input"/>
 <input v-model="form.ip" placeholder="IP" class="input"/>
+
+<select v-model="form.environment" class="input">
+<option>PRODUCTION</option>
+<option>GO-PRODUCTION</option>
+</select>
+
+<select v-model="form.platform" class="input">
+<option>OLVM</option>
+<option>VMWARE</option>
+</select>
+
 <input v-model="form.function" placeholder="Function" class="input"/>
-<input v-model="form.environment" placeholder="Environment" class="input"/>
 <input v-model="form.cluster" placeholder="Cluster" class="input"/>
 <input v-model="form.host" placeholder="Host" class="input"/>
 <input v-model="form.cpu" placeholder="CPU" class="input"/>
@@ -90,72 +68,37 @@ class="input w-2/3"/>
 <button @click="removeDisk(i)">X</button>
 </div>
 
-<button @click="addDisk" class="text-blue-400 text-sm">+ Disk</button>
-<button @click="addVM" class="btn">Save</button>
+<button @click="addDisk">+ Disk</button>
 
+<button @click="saveVM" class="btn">Save</button>
+<button @click="showForm=false" class="text-red-400 text-sm">Close</button>
+
+</div>
 </div>
 
 <!-- TABLE -->
-<div class="bg-slate-900 rounded-xl overflow-hidden">
+<table class="w-full text-xs bg-slate-900 rounded-xl">
 
-<table class="w-full text-xs">
-
-<thead class="bg-slate-800 text-slate-400">
-<tr>
-<th class="p-2">VM</th>
-<th>CPU</th>
-<th>MEM</th>
-<th>ENV</th>
-<th>CLUSTER</th>
-<th>HOST</th>
-<th>DISK</th>
-<th v-if="user.role==='admin'">ACT</th>
+<tr class="bg-slate-800">
+<th>Name</th><th>Env</th><th>Platform</th><th>CPU</th><th>Mem</th><th>Disk</th><th>Action</th>
 </tr>
-</thead>
 
-<tbody>
-
-<tr v-for="vm in filteredVMs" class="border-t border-slate-800">
-
-<td class="p-2">
-<p class="font-bold">{{vm.name}}</p>
-<p class="text-[10px] text-slate-400">{{vm.ip}}</p>
-</td>
-
+<tr v-for="vm in filteredVMs">
+<td>{{vm.name}}<br><span class="text-[10px]">{{vm.ip}}</span></td>
+<td>{{vm.environment}}</td>
+<td>{{vm.platform}}</td>
 <td>{{vm.cpu}}</td>
 <td>{{vm.memory}}</td>
-
 <td>
-<span class="badge"
-:class="{
-'bg-green-500': vm.environment==='PROD',
-'bg-blue-500': vm.environment==='DEV',
-'bg-yellow-500': vm.environment==='UAT'
-}">
-{{vm.environment}}
-</span>
+<span v-for="(d,i) in vm.disk">{{d}} </span>
 </td>
-
-<td>{{vm.cluster}}</td>
-<td class="text-[10px]">{{vm.host}}</td>
-
 <td>
-<span v-for="(d,i) in vm.disk" class="text-[10px] block">
-D{{i+1}}: {{d}}
-</span>
+<button @click="edit(vm)">Edit</button>
+<button @click="del(vm.id)" class="text-red-400">X</button>
 </td>
-
-<td v-if="user.role==='admin'">
-<button @click="deleteVM(vm.id)" class="text-red-400">X</button>
-</td>
-
 </tr>
 
-</tbody>
-
 </table>
-
-</div>
 
 </div>
 
@@ -169,76 +112,105 @@ createApp({
 
 data(){
 return{
-user:{},
 vms:[],
 search:"",
 filterEnv:"ALL",
 showForm:false,
-form:{
-name:"",ip:"",function:"",environment:"",
-cluster:"",host:"",cpu:"",memory:"",
-os:"",vlan:"",storage:"",disk:[]
-}
+editMode:false,
+form:{disk:[]}
 }
 },
 
 computed:{
 filteredVMs(){
 return this.vms.filter(v=>{
-const matchSearch =
-(v.name||"").toLowerCase().includes(this.search.toLowerCase()) ||
-(v.ip||"").includes(this.search)
-
-const matchEnv =
-this.filterEnv==="ALL" || v.environment===this.filterEnv
-
-return matchSearch && matchEnv
+return (
+(v.name||"").toLowerCase().includes(this.search.toLowerCase()) &&
+(this.filterEnv==="ALL"||v.environment===this.filterEnv)
+)
 })
 }
 },
 
-mounted(){
-const u=localStorage.getItem("user")
-if(!u) location="index.html"
-this.user=JSON.parse(u)
-this.loadVM()
-},
+mounted(){this.loadVM()},
 
 methods:{
-
-countEnv(e){
-return this.vms.filter(v=>v.environment===e).length
-},
 
 async loadVM(){
 const r=await fetch(API+"/vms")
 this.vms=await r.json()
 },
 
-addDisk(){this.form.disk.push("")},
-removeDisk(i){this.form.disk.splice(i,1)},
+openForm(){
+this.editMode=false
+this.form={disk:[]}
+this.showForm=true
+},
 
-async addVM(){
+edit(vm){
+this.editMode=true
+this.form={...vm}
+this.showForm=true
+},
+
+async saveVM(){
+
+if(this.editMode){
+await fetch(API+"/vms/"+this.form.id,{
+method:"PUT",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(this.form)
+})
+}else{
 await fetch(API+"/vms",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify(this.form)
 })
+}
 
 this.showForm=false
-this.form={name:"",ip:"",function:"",environment:"",cluster:"",host:"",cpu:"",memory:"",os:"",vlan:"",storage:"",disk:[]}
-
 this.loadVM()
 },
 
-async deleteVM(id){
+async del(id){
 await fetch(API+"/vms/"+id,{method:"DELETE"})
 this.loadVM()
 },
 
-logout(){
-localStorage.clear()
-location="index.html"
+addDisk(){this.form.disk.push("")},
+removeDisk(i){this.form.disk.splice(i,1)},
+
+// 🔥 IMPORT CSV
+importCSV(e){
+const file=e.target.files[0]
+const reader=new FileReader()
+
+reader.onload=async (ev)=>{
+const rows=ev.target.result.split("\n")
+
+for(let r of rows){
+const c=r.split(",")
+
+await fetch(API+"/vms",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+name:c[0],
+ip:c[1],
+environment:c[2],
+platform:c[3],
+cpu:c[4],
+memory:c[5],
+disk:[c[6]]
+})
+})
+}
+
+this.loadVM()
+}
+
+reader.readAsText(file)
 }
 
 }
@@ -247,39 +219,9 @@ location="index.html"
 </script>
 
 <style>
-.input{
-padding:10px;
-background:#020617;
-border:1px solid #1e293b;
-border-radius:8px;
-width:100%;
-}
-
-.btn{
-background:#2563eb;
-padding:10px;
-border-radius:8px;
-width:100%;
-font-weight:bold;
-}
-
-.card{
-background:#020617;
-padding:12px;
-border-radius:12px;
-}
-
-.badge{
-padding:3px 6px;
-border-radius:6px;
-font-size:10px;
-}
-
-.chip{
-background:#020617;
-padding:6px 10px;
-border-radius:6px;
-}
+.input{padding:10px;background:#020617;border:1px solid #1e293b;border-radius:8px;width:100%}
+.btn{background:#2563eb;padding:10px;border-radius:8px;width:100%}
+.chip{background:#020617;padding:6px;border-radius:6px}
 </style>
 
 </body>
