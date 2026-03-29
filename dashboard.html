@@ -12,7 +12,7 @@
 <div id="app" class="flex min-h-screen">
 
 <!-- SIDEBAR -->
-<div class="w-16 border-r border-slate-800 flex items-center justify-center">
+<div class="w-16 border-r border-slate-800 flex items-center justify-center text-xl">
 ⚡
 </div>
 
@@ -22,7 +22,10 @@
 <!-- TOP -->
 <div class="flex gap-2">
 <input v-model="search" class="input flex-1" placeholder="Search VM / IP"/>
-<button @click="openForm" class="btn">+ Add VM</button>
+
+<button v-if="user.role==='admin'" @click="openForm" class="btn">
++ Add VM
+</button>
 </div>
 
 <!-- FILTER -->
@@ -51,7 +54,7 @@
 <th>VLAN</th>
 <th>STORAGE</th>
 <th>DISK</th>
-<th>ACT</th>
+<th v-if="user.role==='admin'">ACT</th>
 </tr>
 </thead>
 
@@ -79,17 +82,19 @@
 
 <td>{{vm.cluster}}</td>
 <td class="small">{{vm.host}}</td>
-<td>{{vm.os}}</td>
+<td class="small">{{vm.os}}</td>
 <td>{{vm.vlan}}</td>
 <td>{{vm.storage}}</td>
 
 <td>
+<div class="flex flex-wrap gap-1">
 <span v-for="(d,i) in vm.disk" class="disk">
-{{d}}
+D{{i+1}}: {{d}}
 </span>
+</div>
 </td>
 
-<td>
+<td v-if="user.role==='admin'" class="flex gap-1">
 <button @click="edit(vm)" class="edit">✏️</button>
 <button @click="del(vm.id)" class="del">🗑️</button>
 </td>
@@ -107,7 +112,7 @@
 
 <div class="bg-slate-900 p-4 rounded-xl w-80 space-y-2">
 
-<h2>{{editMode?'Edit':'Add'}} VM</h2>
+<h2 class="font-bold">{{editMode?'Edit':'Add'}} VM</h2>
 
 <input v-model="form.name" placeholder="Name" class="input"/>
 <input v-model="form.ip" placeholder="IP" class="input"/>
@@ -122,24 +127,33 @@
 <option>VMWARE</option>
 </select>
 
+<select v-model="form.os" class="input">
+<option>Red Hat Enterprise Linux 7 (64-bit)</option>
+<option>Red Hat Enterprise Linux 8 (64-bit)</option>
+<option>Red Hat Enterprise Linux 9 (64-bit)</option>
+<option>Microsoft Windows Server 2016 (64-bit)</option>
+<option>Microsoft Windows Server 2019 (64-bit)</option>
+<option>Microsoft Windows Server 2022 (64-bit)</option>
+</select>
+
 <input v-model="form.function" placeholder="Function" class="input"/>
 <input v-model="form.cluster" placeholder="Cluster" class="input"/>
 <input v-model="form.host" placeholder="Host" class="input"/>
 <input v-model="form.cpu" placeholder="CPU" class="input"/>
 <input v-model="form.memory" placeholder="Memory" class="input"/>
-<input v-model="form.os" placeholder="OS" class="input"/>
 <input v-model="form.vlan" placeholder="VLAN" class="input"/>
 <input v-model="form.storage" placeholder="Storage" class="input"/>
 
+<!-- DISK -->
 <div v-for="(d,i) in form.disk" class="flex gap-2">
 <input v-model="form.disk[i]" class="input"/>
 <button @click="removeDisk(i)">X</button>
 </div>
 
-<button @click="addDisk">+ Disk</button>
+<button @click="addDisk" class="text-blue-400 text-sm">+ Disk</button>
 
 <button @click="saveVM" class="btn">Save</button>
-<button @click="showForm=false" class="text-red-400">Close</button>
+<button @click="showForm=false" class="text-red-400 text-sm">Close</button>
 
 </div>
 </div>
@@ -155,6 +169,9 @@ createApp({
 
 data(){
 return{
+user:{
+  role: localStorage.getItem("role") || "user"
+},
 vms:[],
 search:"",
 filterEnv:"ALL",
@@ -168,9 +185,10 @@ computed:{
 filteredVMs(){
 return this.vms.filter(v=>{
 return (
-(v.name||"").toLowerCase().includes(this.search.toLowerCase()) &&
-(this.filterEnv==="ALL"||v.environment===this.filterEnv)
-)
+(v.name||"").toLowerCase().includes(this.search.toLowerCase()) ||
+(v.ip||"").includes(this.search)
+) &&
+(this.filterEnv==="ALL" || v.environment===this.filterEnv)
 })
 }
 },
@@ -202,27 +220,31 @@ this.showForm=true
 
 async saveVM(){
 
-if(this.editMode){
-await fetch(API+"/vms/"+this.form.id,{
-method:"PUT",
-headers:{"Content-Type":"application/json"},
+const options={
+method:this.editMode?"PUT":"POST",
+headers:{
+"Content-Type":"application/json",
+"role":this.user.role
+},
 body:JSON.stringify(this.form)
-})
-}else{
-await fetch(API+"/vms",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify(this.form)
-})
 }
+
+const url=this.editMode?API+"/vms/"+this.form.id:API+"/vms"
+
+await fetch(url,options)
 
 this.showForm=false
 this.loadVM()
 },
 
 async del(id){
-if(!confirm("Delete?")) return
-await fetch(API+"/vms/"+id,{method:"DELETE"})
+if(!confirm("Delete VM?")) return
+
+await fetch(API+"/vms/"+id,{
+method:"DELETE",
+headers:{ "role":this.user.role }
+})
+
 this.loadVM()
 },
 
@@ -249,6 +271,9 @@ td{padding:10px;border-top:1px solid #1e293b}
 .del{color:#ef4444}
 .chip{padding:6px 10px;background:#020617;border-radius:6px;border:1px solid #1e293b}
 .active{background:#2563eb}
+.blue{color:#60a5fa}
+.bold{font-weight:bold}
+.small{font-size:10px}
 </style>
 
 </body>
