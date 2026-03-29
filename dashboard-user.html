@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script src="https://unpkg.com/vue@3"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-[#020617] text-white">
+
+<div id="app" class="p-4 space-y-4">
+
+<h1 class="text-lg font-bold">VM Dashboard</h1>
+
+<!-- CARD -->
+<div class="grid gap-3">
+
+<div v-for="vm in vms" class="card">
+
+<div class="flex justify-between">
+<div>
+<p class="font-semibold">{{vm.name}}</p>
+<p class="text-xs text-slate-400">{{vm.ip}}</p>
+</div>
+
+<span class="badge">{{vm.environment}}</span>
+</div>
+
+<div class="grid grid-cols-2 gap-2 text-xs mt-3">
+
+<div><span class="label">CPU</span>{{vm.cpu}}</div>
+<div><span class="label">Memory</span>{{vm.memory}}</div>
+
+<div><span class="label">Cluster</span>{{vm.cluster}}</div>
+<div><span class="label">Host</span>{{vm.host}}</div>
+
+<div><span class="label">OS</span>{{vm.os}}</div>
+<div><span class="label">Storage</span>{{vm.storage}}</div>
+
+</div>
+
+<div class="flex gap-1 mt-2">
+<span v-for="(d,i) in vm.disk" class="disk">
+Disk {{i+1}}: {{d}}
+</span>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+const API="https://worker-dashboard.jihadwajib68.workers.dev"
+
+Vue.createApp({
+data(){
+return{
+vms:[]
+}
+},
+
+mounted(){
+this.loadVM()
+},
+
+methods:{
+async loadVM(){
+const r=await fetch(API+"/vms")
+this.vms=await r.json()
+}
+}
+}).mount("#app")
+</script>
+
+<style>
+.card{background:#020617;border:1px solid #1e293b;border-radius:12px;padding:12px}
+.label{display:block;color:#64748b;font-size:10px}
+.badge{background:#1e293b;padding:3px 6px;border-radius:6px;font-size:10px}
+.disk{background:#020617;border:1px solid #334155;padding:2px 6px;border-radius:6px;font-size:10px}
+</style>
+
+</body>
+</html>
