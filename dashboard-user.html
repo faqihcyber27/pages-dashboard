@@ -10,34 +10,47 @@
 
 <body class="bg-[#020617] text-white">
 
-<div id="app" class="p-4 space-y-4">
+<div id="app" class="min-h-screen p-4 space-y-4">
 
 <!-- HEADER -->
 <div class="flex justify-between items-center">
-  <div>
-    <h1 class="text-xl font-bold">VM Dashboard</h1>
-    <p class="text-xs text-slate-400">Infrastructure Overview</p>
-  </div>
 
-  <button @click="exportCSV" class="btn-main">
-    Download CSV
-  </button>
+<div>
+<h1 class="text-xl font-bold">VM Dashboard</h1>
+<p class="text-xs text-slate-400">Infrastructure Overview</p>
+</div>
+
+<div class="flex items-center gap-3">
+<span class="text-xs bg-slate-800 px-3 py-1 rounded-lg">
+👤 {{user.name || 'User'}}
+</span>
+
+<button @click="logout" class="text-red-400 text-xs">
+Logout
+</button>
+</div>
+
 </div>
 
 <!-- SEARCH -->
 <input v-model="search" placeholder="Search VM / IP" class="input"/>
 
+<!-- EMPTY -->
+<div v-if="filteredVMs.length===0" class="text-center text-slate-500 text-sm mt-10">
+Tidak ada data VM
+</div>
+
 <!-- LIST -->
-<div class="space-y-3">
+<div class="space-y-4">
 
-<div v-for="vm in filteredVMs" class="vm-card">
+<div v-for="vm in filteredVMs" class="card">
 
-<!-- HEADER -->
+<!-- TOP -->
 <div class="flex justify-between items-start">
 
 <div>
-<p class="font-semibold text-sm">{{vm.name}}</p>
-<p class="text-[11px] text-slate-400">{{vm.ip}}</p>
+<p class="text-sm font-semibold">{{vm.name}}</p>
+<p class="text-xs text-slate-400">{{vm.ip}}</p>
 </div>
 
 <span 
@@ -48,42 +61,64 @@ class="badge"
 
 </div>
 
-<!-- COMPUTE -->
-<div class="section">
-<p class="section-title">Compute</p>
+<!-- GRID MAIN -->
+<div class="grid grid-cols-2 gap-3 mt-4 text-xs">
 
-<div class="grid grid-cols-3 text-xs gap-2">
-<div><span>CPU</span>{{vm.cpu}}</div>
-<div><span>Memory</span>{{vm.memory}} GB</div>
-<div><span>Platform</span>{{vm.platform}}</div>
+<div class="box">
+<p>CPU</p>
+<span>{{vm.cpu}}</span>
 </div>
+
+<div class="box">
+<p>Memory</p>
+<span>{{vm.memory}} GB</span>
+</div>
+
+<div class="box">
+<p>Platform</p>
+<span>{{vm.platform}}</span>
+</div>
+
+<div class="box">
+<p>OS</p>
+<span>{{vm.os}}</span>
+</div>
+
 </div>
 
 <!-- INFRA -->
-<div class="section">
-<p class="section-title">Infrastructure</p>
+<div class="mt-4 grid gap-2 text-xs">
 
-<div class="grid grid-cols-2 text-xs gap-2">
-<div><span>Cluster</span>{{vm.cluster}}</div>
-<div><span>Host</span>{{vm.host}}</div>
-<div><span>VLAN</span>{{vm.vlan}}</div>
-<div><span>Storage</span>{{vm.storage}}</div>
-</div>
+<div class="line">
+<span>Cluster</span>
+<b>{{vm.cluster}}</b>
 </div>
 
-<!-- SYSTEM -->
-<div class="section">
-<p class="section-title">System</p>
-
-<div class="grid text-xs">
-<div><span>OS</span>{{vm.os}}</div>
-<div><span>Function</span>{{vm.function}}</div>
+<div class="line">
+<span>Host</span>
+<b>{{vm.host}}</b>
 </div>
+
+<div class="line">
+<span>Storage</span>
+<b>{{vm.storage}}</b>
+</div>
+
+<div class="line">
+<span>VLAN</span>
+<b>{{vm.vlan}}</b>
+</div>
+
+<div class="line">
+<span>Function</span>
+<b>{{vm.function}}</b>
+</div>
+
 </div>
 
 <!-- DISK -->
-<div class="section">
-<p class="section-title">Disk</p>
+<div class="mt-4">
+<p class="text-[10px] text-slate-500 mb-1">Disk</p>
 
 <div class="flex flex-wrap gap-2">
 <span v-for="(d,i) in vm.disk" class="disk">
@@ -106,6 +141,7 @@ Vue.createApp({
 
 data(){
 return{
+user: JSON.parse(localStorage.getItem("user") || "{}"),
 vms:[],
 search:""
 }
@@ -123,6 +159,10 @@ return (
 },
 
 mounted(){
+if(!this.user.email){
+window.location="index.html"
+return
+}
 this.loadVM()
 },
 
@@ -133,37 +173,9 @@ const r=await fetch(API+"/vms")
 this.vms=await r.json()
 },
 
-exportCSV(){
-
-let csv="name,ip,environment,platform,function,cluster,host,cpu,memory,os,vlan,storage,disk\n"
-
-this.vms.forEach(vm=>{
-const disk=(vm.disk||[]).join("|")
-
-csv += [
-vm.name,
-vm.ip,
-vm.environment,
-vm.platform,
-vm.function,
-vm.cluster,
-vm.host,
-vm.cpu,
-vm.memory,
-vm.os,
-vm.vlan,
-vm.storage,
-disk
-].join(",") + "\n"
-})
-
-const blob=new Blob([csv])
-const url=URL.createObjectURL(blob)
-
-const a=document.createElement("a")
-a.href=url
-a.download="vm-data.csv"
-a.click()
+logout(){
+localStorage.clear()
+window.location="index.html"
 }
 
 }
@@ -183,28 +195,40 @@ border-radius:10px;
 }
 
 /* CARD */
-.vm-card{
+.card{
+background:linear-gradient(145deg,#020617,#020617);
+border:1px solid #1e293b;
+border-radius:16px;
+padding:16px;
+box-shadow:0 0 0 1px rgba(255,255,255,0.02), 0 10px 30px rgba(0,0,0,0.6);
+}
+
+/* BOX */
+.box{
 background:#020617;
 border:1px solid #1e293b;
-border-radius:14px;
-padding:14px;
+padding:10px;
+border-radius:10px;
 }
 
-/* SECTION */
-.section{
-margin-top:12px;
-}
-
-.section-title{
+.box p{
 font-size:10px;
 color:#64748b;
-margin-bottom:4px;
 }
 
-/* LABEL */
-span{
-display:block;
-font-size:10px;
+.box span{
+font-weight:bold;
+}
+
+/* LINE */
+.line{
+display:flex;
+justify-content:space-between;
+border-bottom:1px solid #1e293b;
+padding-bottom:4px;
+}
+
+.line span{
 color:#64748b;
 }
 
@@ -231,14 +255,7 @@ border:1px solid #334155;
 padding:4px 8px;
 border-radius:6px;
 font-size:10px;
-}
-
-/* BUTTON */
-.btn-main{
-background:#2563eb;
-padding:10px;
-border-radius:8px;
-font-size:12px;
+background:#020617;
 }
 
 </style>
