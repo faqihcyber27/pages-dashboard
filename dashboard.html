@@ -2,8 +2,10 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<script src="https://unpkg.com/vue@3"></script>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+
 </head>
 
 <body class="bg-slate-950 text-white">
@@ -12,147 +14,56 @@
 
   <!-- HEADER -->
   <div class="flex justify-between items-center">
-    <h1 class="text-xl font-bold">VM Dashboard</h1>
-    <button @click="logout" class="text-red-400">Logout</button>
+    <div>
+      <h1 class="text-xl font-bold">Dashboard</h1>
+      <p class="text-sm text-slate-400">Welcome, {{ user.name }}</p>
+    </div>
+
+    <button @click="logout" class="text-red-400 text-sm">
+      Logout
+    </button>
   </div>
 
   <!-- SEARCH -->
-  <input v-model="search" @input="loadVM" placeholder="Search IP / VM..." class="input w-full"/>
+  <input v-model="search" placeholder="Search VM / IP..." class="input w-full"/>
 
-  <!-- ADD -->
-  <button v-if="role==='admin'" @click="addVM" class="btn">
-    + Add VM
-  </button>
-
-  <!-- TABLE -->
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm mt-2">
-      <tr class="border-b border-slate-700">
-        <th>Name</th>
-        <th>IP</th>
-        <th>Cluster</th>
-        <th v-if="role==='admin'">Action</th>
-      </tr>
-
-      <tr v-for="vm in vms" class="border-b border-slate-800">
-        <td>{{ vm.name }}</td>
-        <td class="text-blue-400">{{ vm.ip }}</td>
-        <td>{{ vm.cluster }}</td>
-
-        <td v-if="role==='admin'">
-          <button @click="editVM(vm)" class="text-yellow-400">Edit</button>
-          <button @click="deleteVM(vm.id)" class="text-red-400 ml-2">Delete</button>
-        </td>
-      </tr>
-    </table>
+  <!-- EMPTY STATE -->
+  <div class="text-center text-slate-500 mt-10">
+    Belum ada data VM 🚀
   </div>
 
 </div>
 
 <script>
-const API = "https://worker-dashboard.jihadwajib68.workers.dev"
+const { createApp } = Vue
 
-Vue.createApp({
-data(){
-return{
-vms:[],
-search:"",
-role:localStorage.getItem("role")
-}
-},
+createApp({
+  data() {
+    return {
+      user: {},
+      search: ""
+    }
+  },
 
-async mounted(){
-const token = localStorage.getItem("token")
+  mounted() {
+    const data = localStorage.getItem("user")
 
-if(!token){
-window.location="index.html"
-return
-}
+    if (!data) {
+      window.location.href = "index.html"
+      return
+    }
 
-this.loadVM()
-},
+    this.user = JSON.parse(data)
+  },
 
-methods:{
+  methods: {
 
-async loadVM(){
-const token = localStorage.getItem("token")
+    logout() {
+      localStorage.clear()
+      window.location.href = "index.html"
+    }
 
-const res = await fetch(API+"/api/vms?q="+this.search,{
-headers:{
-"Authorization":"Bearer "+token
-}
-})
-
-if(res.status === 401){
-this.logout()
-return
-}
-
-this.vms = await res.json()
-},
-
-async addVM(){
-const token = localStorage.getItem("token")
-
-await fetch(API+"/api/vms",{
-method:"POST",
-headers:{
-"Authorization":"Bearer "+token,
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-name:"vm-new",
-ip:"10.0.0.1",
-cluster:"A",
-function:"app",
-host:"host1",
-cpu:2,
-memory:4,
-disk:100,
-os:"linux",
-vlan:"10",
-environment:"dev"
-})
-})
-
-this.loadVM()
-},
-
-async editVM(vm){
-const token = localStorage.getItem("token")
-
-await fetch(API+"/api/vms/"+vm.id,{
-method:"PUT",
-headers:{
-"Authorization":"Bearer "+token,
-"Content-Type":"application/json"
-},
-body:JSON.stringify(vm)
-})
-
-this.loadVM()
-},
-
-async deleteVM(id){
-const token = localStorage.getItem("token")
-
-await fetch(API+"/api/vms/"+id,{
-method:"DELETE",
-headers:{
-"Authorization":"Bearer "+token
-}
-})
-
-this.loadVM()
-},
-
-logout(){
-localStorage.clear()
-window.location="index.html"
-}
-
-}
-
+  }
 }).mount("#app")
 </script>
 
@@ -161,12 +72,6 @@ window.location="index.html"
   padding:12px;
   background:#020617;
   border:1px solid #1e293b;
-  border-radius:10px;
-}
-.btn{
-  width:100%;
-  background:#2563eb;
-  padding:12px;
   border-radius:10px;
 }
 </style>
