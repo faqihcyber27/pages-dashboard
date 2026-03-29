@@ -11,21 +11,49 @@
 
 <div id="app" class="p-4 space-y-4">
 
-<div class="flex justify-between">
+<!-- HEADER -->
+<div class="flex justify-between items-center">
   <div>
     <h1 class="text-xl font-bold">VM Dashboard</h1>
-    <p>{{ user.name }} ({{ user.role }})</p>
+    <p class="text-sm text-slate-400">{{ user.name }}</p>
   </div>
-  <button @click="logout" class="text-red-400">Logout</button>
+  <button @click="logout" class="text-red-400 text-sm">Logout</button>
 </div>
 
-<input v-model="search" placeholder="Search VM/IP" class="input"/>
+<!-- SEARCH -->
+<input v-model="search" placeholder="Search VM / IP..." class="input"/>
 
+<!-- SUMMARY -->
+<div class="grid grid-cols-3 gap-3 text-center">
+
+  <div class="card">
+    <p class="text-sm text-slate-400">Total</p>
+    <p class="text-xl font-bold">{{ vms.length }}</p>
+  </div>
+
+  <div class="card">
+    <p class="text-sm text-slate-400">PROD</p>
+    <p class="text-xl font-bold text-green-400">
+      {{ countEnv('PROD') }}
+    </p>
+  </div>
+
+  <div class="card">
+    <p class="text-sm text-slate-400">DEV</p>
+    <p class="text-xl font-bold text-blue-400">
+      {{ countEnv('DEV') }}
+    </p>
+  </div>
+
+</div>
+
+<!-- ADD BUTTON -->
 <button v-if="user.role==='admin'" @click="showForm=!showForm" class="btn">
-Add VM
++ Add VM
 </button>
 
-<div v-if="showForm" class="bg-slate-900 p-3 rounded space-y-2">
+<!-- FORM -->
+<div v-if="showForm" class="bg-slate-900 p-4 rounded-xl space-y-2">
 
 <input v-model="form.name" placeholder="Name" class="input"/>
 <input v-model="form.ip" placeholder="IP" class="input"/>
@@ -44,35 +72,70 @@ Add VM
   <button @click="removeDisk(i)">X</button>
 </div>
 
-<button @click="addDisk">+ Disk</button>
+<button @click="addDisk" class="text-blue-400 text-sm">+ Disk</button>
 <button @click="addVM" class="btn">Save</button>
 
 </div>
 
-<table class="w-full text-sm">
-<tr>
-<th>Name</th>
-<th>IP</th>
-<th>Env</th>
-<th>Disk</th>
-<th v-if="user.role==='admin'">Action</th>
-</tr>
+<!-- VM LIST -->
+<div class="space-y-3">
 
-<tr v-for="vm in filteredVMs">
-<td>{{vm.name}}</td>
-<td>{{vm.ip}}</td>
-<td>{{vm.environment}}</td>
-<td>
-<div v-for="(d,i) in vm.disk">
-D{{i+1}}: {{d}}
+<div v-for="vm in filteredVMs" class="bg-slate-900 p-4 rounded-xl space-y-2 shadow">
+
+  <!-- TOP -->
+  <div class="flex justify-between items-center">
+    <div>
+      <p class="font-bold">{{ vm.name }}</p>
+      <p class="text-sm text-slate-400">{{ vm.ip }}</p>
+    </div>
+
+    <span class="badge"
+      :class="{
+        'bg-green-500': vm.environment==='PROD',
+        'bg-blue-500': vm.environment==='DEV',
+        'bg-yellow-500': vm.environment==='UAT'
+      }">
+      {{ vm.environment }}
+    </span>
+  </div>
+
+  <!-- GRID INFO -->
+  <div class="grid grid-cols-2 gap-2 text-xs">
+
+    <div>Function: {{ vm.function }}</div>
+    <div>Cluster: {{ vm.cluster }}</div>
+
+    <div>Host: {{ vm.host }}</div>
+    <div>OS: {{ vm.os }}</div>
+
+    <div>CPU: {{ vm.cpu }}</div>
+    <div>Memory: {{ vm.memory }}</div>
+
+    <div>VLAN: {{ vm.vlan }}</div>
+    <div>Storage: {{ vm.storage }}</div>
+
+  </div>
+
+  <!-- DISK -->
+  <div class="text-xs">
+    <p class="text-slate-400 mb-1">Disk:</p>
+    <div class="flex flex-wrap gap-2">
+      <span v-for="(d,i) in vm.disk" class="badge bg-slate-700">
+        Disk {{i+1}}: {{d}} GB
+      </span>
+    </div>
+  </div>
+
+  <!-- ACTION -->
+  <button v-if="user.role==='admin'"
+    @click="deleteVM(vm.id)"
+    class="text-red-400 text-xs">
+    Delete
+  </button>
+
 </div>
-</td>
 
-<td v-if="user.role==='admin'">
-<button @click="deleteVM(vm.id)">Delete</button>
-</td>
-</tr>
-</table>
+</div>
 
 </div>
 
@@ -91,8 +154,7 @@ showForm:false,
 form:{
 name:"",ip:"",function:"",environment:"",
 cluster:"",host:"",cpu:"",memory:"",
-os:"",vlan:"",storage:"",
-disk:[]
+os:"",vlan:"",storage:"",disk:[]
 }
 }
 },
@@ -115,6 +177,10 @@ this.loadVM()
 
 methods:{
 
+countEnv(env){
+return this.vms.filter(v=>v.environment===env).length
+},
+
 async loadVM(){
 const r=await fetch(API+"/vms")
 this.vms=await r.json()
@@ -124,23 +190,18 @@ addDisk(){this.form.disk.push("")},
 removeDisk(i){this.form.disk.splice(i,1)},
 
 async addVM(){
-console.log("FORM:",this.form)
-
 const res=await fetch(API+"/vms",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify(this.form)
 })
 
-const data=await res.json()
-console.log("RESPONSE:",data)
-
 if(!res.ok){
-alert(data.error||"Gagal")
+alert("Gagal")
 return
 }
 
-alert("VM berhasil ditambah")
+alert("Berhasil")
 
 this.showForm=false
 this.form={name:"",ip:"",function:"",environment:"",cluster:"",host:"",cpu:"",memory:"",os:"",vlan:"",storage:"",disk:[]}
@@ -165,8 +226,33 @@ location="index.html"
 </script>
 
 <style>
-.input{width:100%;padding:10px;background:#020617;border:1px solid #1e293b;border-radius:8px}
-.btn{width:100%;background:#2563eb;padding:10px;border-radius:8px}
+.input{
+width:100%;
+padding:10px;
+background:#020617;
+border:1px solid #1e293b;
+border-radius:8px;
+}
+
+.btn{
+width:100%;
+background:#2563eb;
+padding:10px;
+border-radius:10px;
+font-weight:bold;
+}
+
+.card{
+background:#020617;
+padding:10px;
+border-radius:10px;
+}
+
+.badge{
+padding:4px 8px;
+border-radius:6px;
+font-size:10px;
+}
 </style>
 
 </body>
