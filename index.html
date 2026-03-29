@@ -121,7 +121,7 @@ async login() {
     }
 
     // 🔥 FIX: SIMPAN ROLE LANGSUNG
-    localStorage.setItem("role", data.role)
+    localStorage.setItem("user", JSON.stringify(data.user))
 
     // 🔥 REDIRECT
     if (data.role === "admin") {
