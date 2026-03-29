@@ -16,8 +16,8 @@
 <div class="flex justify-between items-center">
 
   <div>
-    <h1 class="text-lg font-bold">VM Dashboard</h1>
-    <p class="text-xs text-slate-400">Infrastructure View</p>
+    <h1 class="text-xl font-bold">VM Dashboard</h1>
+    <p class="text-xs text-slate-400">Infrastructure Overview</p>
   </div>
 
   <button @click="logout" class="text-xs text-red-400">
@@ -40,47 +40,47 @@ class="input"/>
 <!-- LIST -->
 <div class="space-y-3">
 
-<div v-for="vm in filteredVMs" class="card">
+<div v-for="vm in filteredVMs" class="vm-card">
 
-<!-- TOP -->
-<div class="flex justify-between items-center">
+<!-- HEADER -->
+<div class="flex justify-between items-start">
 
-<div>
-<p class="font-semibold text-sm">{{vm.name}}</p>
-<p class="text-[11px] text-slate-400">{{vm.ip}}</p>
+  <div>
+    <p class="text-sm font-semibold">{{vm.name}}</p>
+    <p class="text-[11px] text-slate-400">{{vm.ip}}</p>
+  </div>
+
+  <span 
+  class="badge"
+  :class="vm.environment==='PRODUCTION'?'prod':'goprod'">
+  {{vm.environment}}
+  </span>
+
 </div>
 
-<span 
-class="badge"
-:class="vm.environment==='PRODUCTION'?'prod':'goprod'">
-{{vm.environment}}
-</span>
+<!-- INFO GRID -->
+<div class="grid grid-cols-2 gap-3 mt-4 text-xs">
 
-</div>
+  <div class="info"><span>Platform</span>{{vm.platform}}</div>
+  <div class="info"><span>Function</span>{{vm.function}}</div>
 
-<!-- MID GRID -->
-<div class="grid grid-cols-2 gap-3 text-xs mt-3">
+  <div class="info"><span>CPU</span>{{vm.cpu}}</div>
+  <div class="info"><span>Memory</span>{{vm.memory}} GB</div>
 
-<div><span class="label">Platform</span>{{vm.platform}}</div>
-<div><span class="label">Function</span>{{vm.function}}</div>
+  <div class="info"><span>Cluster</span>{{vm.cluster}}</div>
+  <div class="info"><span>Host</span>{{vm.host}}</div>
 
-<div><span class="label">CPU</span>{{vm.cpu}}</div>
-<div><span class="label">Memory</span>{{vm.memory}} GB</div>
+  <div class="info"><span>OS</span>{{vm.os}}</div>
+  <div class="info"><span>VLAN</span>{{vm.vlan}}</div>
 
-<div><span class="label">Cluster</span>{{vm.cluster}}</div>
-<div><span class="label">Host</span>{{vm.host}}</div>
-
-<div><span class="label">OS</span>{{vm.os}}</div>
-<div><span class="label">VLAN</span>{{vm.vlan}}</div>
-
-<div><span class="label">Storage</span>{{vm.storage}}</div>
+  <div class="info"><span>Storage</span>{{vm.storage}}</div>
 
 </div>
 
 <!-- DISK -->
-<div class="mt-3 flex flex-wrap gap-2">
+<div class="mt-4 flex flex-wrap gap-2">
 <span v-for="(d,i) in vm.disk" class="disk">
-Disk {{i+1}}: {{d}} GB
+💽 {{d}} GB
 </span>
 </div>
 
@@ -141,6 +141,8 @@ window.location="index.html"
 </script>
 
 <style>
+
+/* INPUT */
 .input{
 width:100%;
 padding:12px;
@@ -150,16 +152,21 @@ border-radius:10px;
 }
 
 /* CARD */
-.card{
+.vm-card{
 background:linear-gradient(180deg,#020617,#020617);
 border:1px solid #1e293b;
 border-radius:14px;
-padding:14px;
-box-shadow:0 0 0 1px rgba(255,255,255,0.02);
+padding:16px;
+transition:0.2s;
 }
 
-/* LABEL */
-.label{
+.vm-card:hover{
+border-color:#2563eb;
+box-shadow:0 0 0 1px rgba(37,99,235,0.2);
+}
+
+/* INFO */
+.info span{
 display:block;
 font-size:10px;
 color:#64748b;
@@ -202,6 +209,7 @@ border:1px solid #1e293b;
 .active{
 background:#2563eb;
 }
+
 </style>
 
 </body>
