@@ -5,161 +5,352 @@
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-
 </head>
 
-<body class="bg-slate-950 text-white">
+<body class="bg-[#020617] text-white">
 
-<div id="app" class="min-h-screen flex items-center justify-center px-4">
+<div id="app" class="flex min-h-screen">
 
-  <div class="w-full max-w-sm bg-slate-900 p-6 rounded-2xl space-y-5 shadow-xl">
+<!-- SIDEBAR -->
+<div class="w-14 border-r border-slate-800 flex items-center justify-center text-lg">
+⚡
+</div>
 
-    <h1 class="text-2xl font-bold text-center">
-      {{ isLogin ? "Login" : "Register" }}
-    </h1>
+<!-- MAIN -->
+<div class="flex-1 p-4 space-y-4">
 
-    <!-- LOGIN -->
-    <div v-if="isLogin" class="space-y-4">
-      <input v-model="email" placeholder="Email" class="input"/>
-      <input v-model="password" type="password" placeholder="Password" class="input"/>
-
-      <button @click="login" class="btn">Login</button>
-
-      <p class="text-center text-sm text-slate-400">
-        Belum punya akun?
-        <span @click="isLogin=false" class="text-blue-400 cursor-pointer">Register</span>
-      </p>
-    </div>
-
-    <!-- REGISTER -->
-    <div v-else class="space-y-4">
-      <input v-model="name" placeholder="Full Name" class="input"/>
-      <input v-model="email" placeholder="Email" class="input"/>
-      <input v-model="password" type="password" placeholder="Password" class="input"/>
-
-      <button @click="register" class="btn">Register</button>
-
-      <p class="text-center text-sm text-slate-400">
-        Sudah punya akun?
-        <span @click="isLogin=true" class="text-blue-400 cursor-pointer">Login</span>
-      </p>
-    </div>
-
+<!-- HEADER -->
+<div class="flex justify-between items-center">
+  <div>
+    <p class="text-lg font-semibold">VM Dashboard</p>
+    <p class="text-xs text-slate-400">Infrastructure Management</p>
   </div>
+
+  <div class="flex items-center gap-2">
+    <span 
+      class="px-2 py-1 text-xs rounded-full"
+      :class="user.role==='admin' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'"
+    >
+      {{ user.role }}
+    </span>
+
+    <button @click="logout" class="text-xs text-red-400">
+      Logout
+    </button>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div class="flex gap-2">
+<input v-model="search" class="input flex-1" placeholder="Search VM / IP"/>
+
+<button 
+v-if="user.role==='admin'"
+@click="openForm"
+class="btn">
++ Add VM
+</button>
+</div>
+
+<!-- FILTER -->
+<div class="flex gap-2 text-xs">
+<button @click="filterEnv='ALL'" :class="chip('ALL')">ALL</button>
+<button @click="filterEnv='PRODUCTION'" :class="chip('PRODUCTION')">PROD</button>
+<button @click="filterEnv='GO-PRODUCTION'" :class="chip('GO-PRODUCTION')">GO-PROD</button>
+</div>
+
+<!-- ================= ADMIN TABLE ================= -->
+<div v-if="user.role==='admin'" class="table-wrap">
+
+<table class="table">
+
+<thead>
+<tr>
+<th>VM</th>
+<th>ENV</th>
+<th>PLATFORM</th>
+<th>FUNCTION</th>
+<th>CPU</th>
+<th>MEM</th>
+<th>CLUSTER</th>
+<th>HOST</th>
+<th>OS</th>
+<th>VLAN</th>
+<th>STORAGE</th>
+<th>DISK</th>
+<th>ACT</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr v-for="vm in filteredVMs">
+
+<td>
+<p class="font-semibold">{{vm.name}}</p>
+<p class="text-[10px] text-slate-400">{{vm.ip}}</p>
+</td>
+
+<td>
+<span class="badge"
+:class="vm.environment==='PRODUCTION'?'prod':'goprod'">
+{{vm.environment}}
+</span>
+</td>
+
+<td class="blue">{{vm.platform}}</td>
+<td>{{vm.function}}</td>
+
+<td class="bold">{{vm.cpu}}</td>
+<td>{{vm.memory}}</td>
+
+<td>{{vm.cluster}}</td>
+<td class="small">{{vm.host}}</td>
+<td class="small">{{vm.os}}</td>
+<td>{{vm.vlan}}</td>
+<td>{{vm.storage}}</td>
+
+<td>
+<div class="flex flex-wrap gap-1">
+<span v-for="(d,i) in vm.disk" class="disk">
+D{{i+1}}: {{d}}
+</span>
+</div>
+</td>
+
+<td class="flex gap-1">
+<button @click="edit(vm)" class="edit">✏️</button>
+<button @click="del(vm.id)" class="del">🗑️</button>
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+</div>
+
+<!-- ================= USER CARD ================= -->
+<div v-if="user.role!=='admin'" class="grid gap-3">
+
+<div v-for="vm in filteredVMs" class="card">
+
+<div class="flex justify-between items-center">
+
+  <div>
+    <p class="font-semibold text-sm">{{vm.name}}</p>
+    <p class="text-[10px] text-slate-400">{{vm.ip}}</p>
+  </div>
+
+  <span 
+    class="badge"
+    :class="vm.environment==='PRODUCTION'?'prod':'goprod'"
+  >
+    {{vm.environment}}
+  </span>
 
 </div>
 
-<script>
-const API = "https://worker-dashboard.jihadwajib68.workers.dev"
+<div class="grid grid-cols-2 gap-2 text-xs mt-3">
 
-const { createApp } = Vue
+  <div><span class="label">Platform</span>{{vm.platform}}</div>
+  <div><span class="label">Function</span>{{vm.function}}</div>
+
+  <div><span class="label">CPU</span>{{vm.cpu}}</div>
+  <div><span class="label">Memory</span>{{vm.memory}}</div>
+
+  <div><span class="label">Cluster</span>{{vm.cluster}}</div>
+  <div><span class="label">Host</span>{{vm.host}}</div>
+
+  <div><span class="label">OS</span>{{vm.os}}</div>
+  <div><span class="label">VLAN</span>{{vm.vlan}}</div>
+
+  <div><span class="label">Storage</span>{{vm.storage}}</div>
+
+</div>
+
+<div class="flex flex-wrap gap-1 mt-3">
+<span v-for="(d,i) in vm.disk" class="disk">
+Disk {{i+1}}: {{d}}
+</span>
+</div>
+
+</div>
+</div>
+
+<!-- MODAL ADMIN -->
+<div v-if="showForm && user.role==='admin'" class="fixed inset-0 bg-black/70 flex items-center justify-center">
+
+<div class="bg-slate-900 p-4 rounded-xl w-80 space-y-2">
+
+<h2>{{editMode?'Edit':'Add'}} VM</h2>
+
+<input v-model="form.name" placeholder="Name" class="input"/>
+<input v-model="form.ip" placeholder="IP" class="input"/>
+
+<select v-model="form.environment" class="input">
+<option>PRODUCTION</option>
+<option>GO-PRODUCTION</option>
+</select>
+
+<select v-model="form.platform" class="input">
+<option>OLVM</option>
+<option>VMWARE</option>
+</select>
+
+<select v-model="form.os" class="input">
+<option>Red Hat Enterprise Linux 7 (64-bit)</option>
+<option>Red Hat Enterprise Linux 8 (64-bit)</option>
+<option>Red Hat Enterprise Linux 9 (64-bit)</option>
+<option>Microsoft Windows Server 2016 (64-bit)</option>
+<option>Microsoft Windows Server 2019 (64-bit)</option>
+<option>Microsoft Windows Server 2022 (64-bit)</option>
+</select>
+
+<input v-model="form.function" placeholder="Function" class="input"/>
+<input v-model="form.cluster" placeholder="Cluster" class="input"/>
+<input v-model="form.host" placeholder="Host" class="input"/>
+<input v-model="form.cpu" placeholder="CPU" class="input"/>
+<input v-model="form.memory" placeholder="Memory" class="input"/>
+<input v-model="form.vlan" placeholder="VLAN" class="input"/>
+<input v-model="form.storage" placeholder="Storage" class="input"/>
+
+<div v-for="(d,i) in form.disk" class="flex gap-2">
+<input v-model="form.disk[i]" class="input"/>
+<button @click="removeDisk(i)">X</button>
+</div>
+
+<button @click="addDisk" class="text-blue-400 text-sm">+ Disk</button>
+
+<button @click="saveVM" class="btn">Save</button>
+<button @click="showForm=false" class="text-red-400 text-sm">Close</button>
+
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const API="https://worker-dashboard.jihadwajib68.workers.dev"
+const {createApp}=Vue
 
 createApp({
-  data() {
-    return {
-      isLogin: true,
-      name: "",
-      email: "",
-      password: ""
-    }
-  },
 
-  methods: {
+data(){
+return{
+user:{ role: localStorage.getItem("role") || "user" },
+vms:[],
+search:"",
+filterEnv:"ALL",
+showForm:false,
+editMode:false,
+form:{disk:[]}
+}
+},
 
-    async login() {
+computed:{
+filteredVMs(){
+return this.vms.filter(v=>{
+return (
+(v.name||"").toLowerCase().includes(this.search.toLowerCase()) ||
+(v.ip||"").includes(this.search)
+) &&
+(this.filterEnv==="ALL" || v.environment===this.filterEnv)
+})
+}
+},
 
-  if (!this.email || !this.password) {
-    alert("Isi email & password")
-    return
-  }
+mounted(){
+if(!localStorage.getItem("role")){
+  window.location="index.html"
+}
+this.loadVM()
+},
 
-  try {
-    const res = await fetch(API + "/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email: this.email,
-        password: this.password
-      })
-    })
+methods:{
 
-    const data = await res.json()
+async loadVM(){
+const r=await fetch(API+"/vms")
+this.vms=await r.json()
+},
 
-    console.log("LOGIN RESPONSE:", data)
+chip(e){
+return this.filterEnv===e ? "chip active":"chip"
+},
 
-    if (data.error) {
-      alert(data.error)
-      return
-    }
+openForm(){
+this.editMode=false
+this.form={disk:[]}
+this.showForm=true
+},
 
-    // ✅ INI YANG PENTING
-    localStorage.setItem("role", data.role)
+edit(vm){
+this.editMode=true
+this.form=JSON.parse(JSON.stringify(vm))
+this.showForm=true
+},
 
-    alert("Login berhasil sebagai " + data.role)
+async saveVM(){
+const url=this.editMode?API+"/vms/"+this.form.id:API+"/vms"
 
-    window.location.href = "dashboard.html"
+await fetch(url,{
+method:this.editMode?"PUT":"POST",
+headers:{
+"Content-Type":"application/json",
+"role":this.user.role
+},
+body:JSON.stringify(this.form)
+})
 
-  } catch (err) {
-    alert("Server error")
-  }
-    },
+this.showForm=false
+this.loadVM()
+},
 
-    async register() {
-      if (!this.name || !this.email || !this.password) {
-        alert("Lengkapi semua field")
-        return
-      }
+async del(id){
+if(!confirm("Delete VM?")) return
 
-      try {
-        const res = await fetch(API + "/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            name: this.name,
-            email: this.email,
-            password: this.password
-          })
-        })
+await fetch(API+"/vms/"+id,{
+method:"DELETE",
+headers:{ "role":this.user.role }
+})
 
-        const data = await res.json()
-        console.log("REGISTER:", data)
+this.loadVM()
+},
 
-        if (data.error) {
-          alert(data.error)
-          return
-        }
+addDisk(){this.form.disk.push("")},
+removeDisk(i){this.form.disk.splice(i,1)},
 
-        alert("Register berhasil")
-        this.isLogin = true
+logout(){
+localStorage.clear()
+window.location="index.html"
+}
 
-      } catch {
-        alert("Server error")
-      }
-    }
+}
 
-  }
 }).mount("#app")
 </script>
 
 <style>
-.input{
-  width:100%;
-  padding:12px;
-  background:#020617;
-  border:1px solid #1e293b;
-  border-radius:10px;
-}
-.btn{
-  width:100%;
-  background:#2563eb;
-  padding:12px;
-  border-radius:10px;
-  font-weight:bold;
-}
+.input{padding:10px;background:#020617;border:1px solid #1e293b;border-radius:8px;width:100%}
+.btn{background:#2563eb;padding:10px;border-radius:8px}
+.table-wrap{background:#020617;border-radius:12px;border:1px solid #1e293b}
+.table{width:100%;font-size:11px}
+th{padding:10px;color:#94a3b8}
+td{padding:10px;border-top:1px solid #1e293b}
+.badge{padding:4px 8px;border-radius:6px;font-size:10px}
+.prod{background:#022c22;color:#4ade80}
+.goprod{background:#3f1d02;color:#facc15}
+.disk{background:#020617;border:1px solid #334155;padding:2px 6px;border-radius:6px;font-size:10px}
+.edit{color:#3b82f6}
+.del{color:#ef4444}
+.chip{padding:6px 10px;background:#020617;border-radius:6px;border:1px solid #1e293b}
+.active{background:#2563eb}
+.card{background:#020617;border:1px solid #1e293b;border-radius:12px;padding:12px}
+.label{display:block;color:#64748b;font-size:10px}
+.blue{color:#60a5fa}
+.bold{font-weight:bold}
+.small{font-size:10px}
 </style>
 
 </body>
