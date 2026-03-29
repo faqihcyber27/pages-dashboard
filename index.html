@@ -12,48 +12,35 @@
 
   <div class="w-full max-w-sm bg-slate-900 p-6 rounded-2xl space-y-5 shadow-xl">
 
-    <!-- TITLE -->
     <h1 class="text-2xl font-bold text-center">
       {{ isLogin ? "Login" : "Register" }}
     </h1>
 
-    <!-- LOGIN FORM -->
+    <!-- LOGIN -->
     <div v-if="isLogin" class="space-y-4">
-
       <input v-model="email" placeholder="Email" class="input"/>
       <input v-model="password" type="password" placeholder="Password" class="input"/>
 
-      <button @click="login" class="btn">
-        Login
-      </button>
+      <button @click="login" class="btn">Login</button>
 
       <p class="text-center text-sm text-slate-400">
         Belum punya akun?
-        <span @click="isLogin=false" class="text-blue-400 cursor-pointer">
-          Register
-        </span>
+        <span @click="isLogin=false" class="text-blue-400 cursor-pointer">Register</span>
       </p>
-
     </div>
 
-    <!-- REGISTER FORM -->
+    <!-- REGISTER -->
     <div v-else class="space-y-4">
-
       <input v-model="name" placeholder="Full Name" class="input"/>
       <input v-model="email" placeholder="Email" class="input"/>
       <input v-model="password" type="password" placeholder="Password" class="input"/>
 
-      <button @click="register" class="btn">
-        Register
-      </button>
+      <button @click="register" class="btn">Register</button>
 
       <p class="text-center text-sm text-slate-400">
         Sudah punya akun?
-        <span @click="isLogin=true" class="text-blue-400 cursor-pointer">
-          Login
-        </span>
+        <span @click="isLogin=true" class="text-blue-400 cursor-pointer">Login</span>
       </p>
-
     </div>
 
   </div>
@@ -71,6 +58,24 @@ return {
   email: "",
   password: ""
 }
+},
+
+async mounted() {
+  const token = localStorage.getItem("token")
+
+  if (!token) return
+
+  try {
+    const res = await fetch(API + "/api/vms", {
+      headers: { Authorization: "Bearer " + token }
+    })
+
+    if (res.status === 200) {
+      window.location = "dashboard.html"
+    }
+  } catch {
+    localStorage.clear()
+  }
 },
 
 methods: {
@@ -133,20 +138,13 @@ async register() {
   background:#020617;
   border:1px solid #1e293b;
   border-radius:10px;
-  font-size:14px;
 }
-
 .btn{
   width:100%;
   background:#2563eb;
   padding:12px;
   border-radius:10px;
   font-weight:bold;
-  transition:0.2s;
-}
-
-.btn:active{
-  transform:scale(0.98);
 }
 </style>
 
