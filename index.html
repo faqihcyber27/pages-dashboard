@@ -85,43 +85,48 @@ async mounted() {
 methods: {
 
 async login() {
-  if (!this.email || !this.password) {
-    alert("Isi email & password")
-    return
-  }
+async function login(request, env) {
+  let body
 
   try {
-    const res = await fetch(API + "/api/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email: this.email,
-        password: this.password
-      })
-    })
-
-    const data = await res.json()
-    console.log("LOGIN:", data)
-
-    if (!res.ok) {
-      alert(data.error || "Login gagal")
-      return
-    }
-
-    localStorage.setItem("token", data.token)
-    localStorage.setItem("role", data.role)
-
-    alert("Login berhasil")
-
-    window.location = "dashboard.html"
-
-  } catch (err) {
-    alert("Server error")
+    body = await request.json()
+  } catch {
+    return json({ error: "Body tidak valid" }, 400)
   }
-},
 
+  const { email, password } = body
+
+  if (!email || !password) {
+    return json({ error: "Email/password kosong" }, 400)
+  }
+
+  const cleanEmail = email.trim().toLowerCase()
+  const cleanPassword = password.trim()
+
+  const user = await env.DB.prepare(
+    "SELECT * FROM users WHERE email = ?"
+  ).bind(cleanEmail).first()
+
+  if (!user) {
+    return json({ error: "User tidak ditemukan" }, 404)
+  }
+
+  if (user.password !== cleanPassword) {
+    return json({ error: "Password salah" }, 401)
+  }
+
+  const token = btoa(cleanEmail + ":" + Date.now())
+
+  await env.DB.prepare(
+    "UPDATE users SET token = ? WHERE id = ?"
+  ).bind(token, user.id).run()
+
+  return json({
+    token,
+    role: user.role
+  })
+},
+  
 async register() {
   if (!this.name || !this.email || !this.password) {
     alert("Lengkapi semua field")
