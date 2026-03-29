@@ -1,89 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://unpkg.com/vue@3"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/vue@3"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-slate-950 text-white">
+<body class="bg-slate-950 text-white flex items-center justify-center h-screen">
 
-<div id="app" class="min-h-screen flex items-center justify-center">
+<div id="app" class="bg-slate-900 p-6 rounded-xl w-80 space-y-4">
 
-  <div class="bg-slate-900 p-6 rounded-xl w-80 space-y-4">
+<h1 class="text-xl text-center font-bold">Login</h1>
 
-    <h1 class="text-xl font-bold text-center">VM Login</h1>
+<input v-model="email" placeholder="Email" class="input"/>
+<input v-model="password" type="password" placeholder="Password" class="input"/>
 
-    <input v-model="email" placeholder="Email" class="input"/>
-    <input v-model="password" type="password" placeholder="Password" class="input"/>
-
-    <button @click="login" class="btn">Login</button>
-
-    <button @click="register" class="text-sm text-blue-400">
-      Register
-    </button>
-
-  </div>
+<button @click="login" class="btn">Login</button>
+<button @click="register" class="text-blue-400 text-sm">Register</button>
 
 </div>
 
 <script>
-const API = "https://YOUR-WORKER-URL"
+const API = "https://worker-dashboard.jihadwajib68.workers.dev"
 
 Vue.createApp({
-  data() {
-    return {
-      email: "",
-      password: ""
-    }
-  },
-  methods: {
-    async login() {
-      const res = await fetch(API + "/api/login", {
-        method: "POST",
-        body: JSON.stringify({
-          email: this.email,
-          password: this.password
-        })
-      })
-
-      const data = await res.json()
-
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("role", data.role)
-
-      window.location.href = "/dashboard.html"
-    },
-
-    async register() {
-      await fetch(API + "/api/register", {
-        method: "POST",
-        body: JSON.stringify({
-          name: "user",
-          email: this.email,
-          password: this.password
-        })
-      })
-
-      alert("Registered!")
-    }
-  }
+data() {
+return { email:"", password:"" }
+},
+methods:{
+async login(){
+const res = await fetch(API+"/api/login",{
+method:"POST",
+body: JSON.stringify(this)
+})
+const data = await res.json()
+localStorage.setItem("token",data.token)
+localStorage.setItem("role",data.role)
+window.location="dashboard.html"
+},
+async register(){
+await fetch(API+"/api/register",{
+method:"POST",
+body: JSON.stringify({name:"user",...this})
+})
+alert("registered")
+}
+}
 }).mount("#app")
 </script>
 
 <style>
-.input {
-  width: 100%;
-  padding: 10px;
-  background: #020617;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
-}
-.btn {
-  width: 100%;
-  background: #2563eb;
-  padding: 10px;
-  border-radius: 8px;
-}
+.input{width:100%;padding:10px;background:#020617;border:1px solid #1e293b;border-radius:8px}
+.btn{width:100%;background:#2563eb;padding:10px;border-radius:8px}
 </style>
 
 </body>
