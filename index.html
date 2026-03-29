@@ -64,34 +64,20 @@ createApp({
     }
   },
 
-  async mounted() {
-    const token = localStorage.getItem("token")
-    if (!token) return
-
-    try {
-      const res = await fetch(API + "/api/me", {
-        headers: {
-          Authorization: "Bearer " + token
-        }
-      })
-
-      if (res.ok) {
-        window.location = "dashboard.html"
-      } else {
-        localStorage.clear()
-      }
-    } catch {
-      localStorage.clear()
-    }
-  },
-
   methods: {
 
     async login() {
+      if (!this.email || !this.password) {
+        alert("Isi email & password")
+        return
+      }
+
       try {
-        const res = await fetch(API + "/api/login", {
+        const res = await fetch(API + "/login", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
             email: this.email,
             password: this.password
@@ -99,27 +85,34 @@ createApp({
         })
 
         const data = await res.json()
+        console.log("LOGIN:", data)
 
-        if (!res.ok) {
-          alert(data.error || "Login gagal")
+        if (data.error) {
+          alert(data.error)
           return
         }
 
-        localStorage.setItem("token", data.token)
-        localStorage.setItem("role", data.role)
+        localStorage.setItem("user", JSON.stringify(data.user))
 
-        window.location = "dashboard.html"
+        alert("Login berhasil")
 
-      } catch (e) {
+      } catch (err) {
         alert("Server error")
       }
     },
 
     async register() {
+      if (!this.name || !this.email || !this.password) {
+        alert("Lengkapi semua field")
+        return
+      }
+
       try {
-        const res = await fetch(API + "/api/register", {
+        const res = await fetch(API + "/register", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
             name: this.name,
             email: this.email,
@@ -128,9 +121,10 @@ createApp({
         })
 
         const data = await res.json()
+        console.log("REGISTER:", data)
 
-        if (!res.ok) {
-          alert(data.error || "Register gagal")
+        if (data.error) {
+          alert(data.error)
           return
         }
 
