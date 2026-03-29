@@ -14,84 +14,67 @@
 
 <!-- HEADER -->
 <div class="flex justify-between items-center">
-  <h1 class="text-lg font-bold">Admin Dashboard</h1>
+  <h1 class="text-xl font-bold">Admin Dashboard</h1>
 
   <button @click="logout" class="text-xs text-red-400">
     Logout
   </button>
 </div>
 
-<!-- ADD BUTTON -->
-<button @click="openForm" class="btn w-full">
-+ Add VM
-</button>
-
-<!-- TABLE -->
-<div class="table-wrap">
-
-<table class="table">
-
-<thead>
-<tr>
-<th>VM</th>
-<th>ENV</th>
-<th>PLATFORM</th>
-<th>CPU</th>
-<th>MEM</th>
-<th>CLUSTER</th>
-<th>HOST</th>
-<th>OS</th>
-<th>DISK</th>
-<th>ACT</th>
-</tr>
-</thead>
-
-<tbody>
-
-<tr v-for="vm in vms">
-
-<td>
-<p class="font-semibold">{{vm.name}}</p>
-<p class="text-[10px] text-slate-400">{{vm.ip}}</p>
-</td>
-
-<td>{{vm.environment}}</td>
-<td class="text-blue-400">{{vm.platform}}</td>
-
-<td>{{vm.cpu}}</td>
-<td>{{vm.memory}}</td>
-
-<td>{{vm.cluster}}</td>
-<td class="text-xs">{{vm.host}}</td>
-
-<td class="text-xs">{{vm.os}}</td>
-
-<td>
-<div class="flex flex-wrap gap-1">
-<span v-for="(d,i) in vm.disk" class="disk">
-D{{i+1}}: {{d}}
-</span>
+<!-- ACTION -->
+<div class="flex gap-2">
+  <button @click="openForm" class="btn-main flex-1">+ Add VM</button>
+  <button @click="exportCSV" class="btn-secondary">Export</button>
+  <input type="file" @change="importCSV" class="text-xs"/>
 </div>
-</td>
 
-<td class="flex gap-1">
-<button @click="edit(vm)" class="edit">✏️</button>
-<button @click="del(vm.id)" class="del">🗑️</button>
-</td>
+<!-- LIST -->
+<div class="space-y-3">
 
-</tr>
+<div v-for="vm in vms" class="card">
 
-</tbody>
+<div class="flex justify-between">
 
-</table>
+<div>
+<p class="font-semibold text-sm">{{vm.name}}</p>
+<p class="text-xs text-slate-400">{{vm.ip}}</p>
+</div>
+
+<div class="flex gap-2">
+<button @click="edit(vm)">✏️</button>
+<button @click="del(vm.id)">🗑️</button>
+</div>
+
+</div>
+
+<div class="grid grid-cols-2 gap-2 text-xs mt-3">
+
+<div><span class="label">Env</span>{{vm.environment}}</div>
+<div><span class="label">Platform</span>{{vm.platform}}</div>
+
+<div><span class="label">CPU</span>{{vm.cpu}}</div>
+<div><span class="label">Memory</span>{{vm.memory}}</div>
+
+<div><span class="label">Cluster</span>{{vm.cluster}}</div>
+<div><span class="label">Host</span>{{vm.host}}</div>
+
+<div><span class="label">OS</span>{{vm.os}}</div>
+<div><span class="label">Storage</span>{{vm.storage}}</div>
+
+</div>
+
+<div class="flex gap-1 mt-2">
+<span v-for="d in vm.disk" class="disk">{{d}}</span>
+</div>
+
+</div>
+
 </div>
 
 <!-- MODAL -->
 <div v-if="showForm" class="fixed inset-0 bg-black/70 flex items-center justify-center">
 
 <div class="bg-slate-900 p-4 rounded-xl w-full max-w-md space-y-2">
-
-<h2 class="font-bold">{{editMode?'Edit':'Add'}} VM</h2>
 
 <input v-model="form.name" placeholder="Name" class="input"/>
 <input v-model="form.ip" placeholder="IP" class="input"/>
@@ -106,39 +89,23 @@ D{{i+1}}: {{d}}
 <option>VMWARE</option>
 </select>
 
-<select v-model="form.os" class="input">
-<option>Red Hat Enterprise Linux 7 (64-bit)</option>
-<option>Red Hat Enterprise Linux 8 (64-bit)</option>
-<option>Red Hat Enterprise Linux 9 (64-bit)</option>
-<option>Microsoft Windows Server 2016 (64-bit)</option>
-<option>Microsoft Windows Server 2019 (64-bit)</option>
-<option>Microsoft Windows Server 2022 (64-bit)</option>
-</select>
-
 <input v-model="form.function" placeholder="Function" class="input"/>
 <input v-model="form.cluster" placeholder="Cluster" class="input"/>
 <input v-model="form.host" placeholder="Host" class="input"/>
 <input v-model="form.cpu" placeholder="CPU" class="input"/>
-<input v-model="form.memory" placeholder="Memory (GB)" class="input"/>
+<input v-model="form.memory" placeholder="Memory" class="input"/>
+<input v-model="form.os" placeholder="OS" class="input"/>
 <input v-model="form.vlan" placeholder="VLAN" class="input"/>
 <input v-model="form.storage" placeholder="Storage" class="input"/>
 
-<!-- DISK -->
-<div>
-<p class="text-xs text-slate-400">Disk</p>
-
-<div v-for="(d,i) in form.disk" class="flex gap-2 mt-1">
+<div v-for="(d,i) in form.disk" class="flex gap-2">
 <input v-model="form.disk[i]" class="input"/>
 <button @click="removeDisk(i)">X</button>
 </div>
 
-<button @click="addDisk" class="text-blue-400 text-sm mt-1">
-+ Add Disk
-</button>
-</div>
+<button @click="addDisk">+ Disk</button>
 
-<button @click="saveVM" class="btn">Save</button>
-<button @click="showForm=false" class="text-red-400 text-sm">Close</button>
+<button @click="saveVM" class="btn-main">Save</button>
 
 </div>
 </div>
@@ -159,9 +126,7 @@ form:{disk:[]}
 }
 },
 
-mounted(){
-this.loadVM()
-},
+mounted(){this.loadVM()},
 
 methods:{
 
@@ -171,14 +136,14 @@ this.vms=await r.json()
 },
 
 openForm(){
-this.editMode=false
 this.form={disk:[]}
+this.editMode=false
 this.showForm=true
 },
 
 edit(vm){
-this.editMode=true
 this.form=JSON.parse(JSON.stringify(vm))
+this.editMode=true
 this.showForm=true
 },
 
@@ -200,22 +165,71 @@ this.loadVM()
 },
 
 async del(id){
-if(!confirm("Delete VM?")) return
-
 await fetch(API+"/vms/"+id,{
 method:"DELETE",
 headers:{ "role":"admin" }
 })
-
 this.loadVM()
 },
 
-addDisk(){
-this.form.disk.push("")
+addDisk(){this.form.disk.push("")},
+removeDisk(i){this.form.disk.splice(i,1)},
+
+// EXPORT
+exportCSV(){
+let csv="name,ip,environment,platform,function,cluster,host,cpu,memory,os,vlan,storage,disk\n"
+
+this.vms.forEach(vm=>{
+const disk=(vm.disk||[]).join("|")
+csv+=`${vm.name},${vm.ip},${vm.environment},${vm.platform},${vm.function},${vm.cluster},${vm.host},${vm.cpu},${vm.memory},${vm.os},${vm.vlan},${vm.storage},${disk}\n`
+})
+
+const blob=new Blob([csv])
+const url=URL.createObjectURL(blob)
+const a=document.createElement("a")
+a.href=url
+a.download="vm.csv"
+a.click()
 },
 
-removeDisk(i){
-this.form.disk.splice(i,1)
+// IMPORT
+importCSV(e){
+const file=e.target.files[0]
+const reader=new FileReader()
+
+reader.onload=async (ev)=>{
+const rows=ev.target.result.split("\n").map(r=>r.split(","))
+const headers=rows[0]
+
+for(let i=1;i<rows.length;i++){
+const row=rows[i]
+if(!row[0]) continue
+
+let vm={}
+headers.forEach((h,idx)=>{
+vm[h]=row[idx]
+})
+
+vm.disk=[]
+headers.forEach((h,idx)=>{
+if(h.includes("disk") && row[idx]) vm.disk.push(row[idx])
+})
+
+await fetch(API+"/vms",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"role":"admin"
+},
+body:JSON.stringify(vm)
+})
+}
+
+alert("Import selesai")
+this.loadVM()
+}
+
+reader.readAsText(file)
 },
 
 logout(){
@@ -229,53 +243,12 @@ window.location="index.html"
 </script>
 
 <style>
-.input{
-width:100%;
-padding:10px;
-background:#020617;
-border:1px solid #1e293b;
-border-radius:8px;
-}
-
-.btn{
-background:#2563eb;
-padding:10px;
-border-radius:8px;
-width:100%;
-}
-
-.table-wrap{
-background:#020617;
-border-radius:12px;
-border:1px solid #1e293b;
-overflow:auto;
-}
-
-.table{
-width:100%;
-font-size:11px;
-}
-
-th{
-padding:10px;
-color:#94a3b8;
-}
-
-td{
-padding:10px;
-border-top:1px solid #1e293b;
-}
-
-.disk{
-background:#020617;
-border:1px solid #334155;
-padding:2px 6px;
-border-radius:6px;
-font-size:10px;
-}
-
-.edit{color:#3b82f6}
-.del{color:#ef4444}
+.input{width:100%;padding:10px;background:#020617;border:1px solid #1e293b;border-radius:8px}
+.btn-main{background:#2563eb;padding:10px;border-radius:8px}
+.btn-secondary{background:#334155;padding:10px;border-radius:8px}
+.card{background:#020617;border:1px solid #1e293b;border-radius:12px;padding:12px}
+.label{font-size:10px;color:#64748b}
+.disk{border:1px solid #334155;padding:2px 6px;border-radius:6px;font-size:10px}
 </style>
 
 </body>
