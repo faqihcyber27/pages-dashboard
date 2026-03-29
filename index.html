@@ -1,21 +1,62 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script src="https://unpkg.com/vue@3"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-slate-950 text-white flex items-center justify-center h-screen">
+<body class="bg-slate-950 text-white">
 
-<div id="app" class="bg-slate-900 p-6 rounded-xl w-80 space-y-4">
+<div id="app" class="min-h-screen flex items-center justify-center px-4">
 
-<h1 class="text-xl text-center font-bold">Login</h1>
+  <div class="w-full max-w-sm bg-slate-900 p-6 rounded-2xl space-y-5 shadow-xl">
 
-<input v-model="email" placeholder="Email" class="input"/>
-<input v-model="password" type="password" placeholder="Password" class="input"/>
+    <!-- TITLE -->
+    <h1 class="text-2xl font-bold text-center">
+      {{ isLogin ? "Login" : "Register" }}
+    </h1>
 
-<button @click="login" class="btn">Login</button>
-<button @click="register" class="text-blue-400 text-sm">Register</button>
+    <!-- LOGIN FORM -->
+    <div v-if="isLogin" class="space-y-4">
+
+      <input v-model="email" placeholder="Email" class="input"/>
+      <input v-model="password" type="password" placeholder="Password" class="input"/>
+
+      <button @click="login" class="btn">
+        Login
+      </button>
+
+      <p class="text-center text-sm text-slate-400">
+        Belum punya akun?
+        <span @click="isLogin=false" class="text-blue-400 cursor-pointer">
+          Register
+        </span>
+      </p>
+
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div v-else class="space-y-4">
+
+      <input v-model="name" placeholder="Full Name" class="input"/>
+      <input v-model="email" placeholder="Email" class="input"/>
+      <input v-model="password" type="password" placeholder="Password" class="input"/>
+
+      <button @click="register" class="btn">
+        Register
+      </button>
+
+      <p class="text-center text-sm text-slate-400">
+        Sudah punya akun?
+        <span @click="isLogin=true" class="text-blue-400 cursor-pointer">
+          Login
+        </span>
+      </p>
+
+    </div>
+
+  </div>
 
 </div>
 
@@ -24,33 +65,89 @@ const API = "https://worker-dashboard.jihadwajib68.workers.dev"
 
 Vue.createApp({
 data() {
-return { email:"", password:"" }
-},
-methods:{
-async login(){
-const res = await fetch(API+"/api/login",{
-method:"POST",
-body: JSON.stringify(this)
-})
-const data = await res.json()
-localStorage.setItem("token",data.token)
-localStorage.setItem("role",data.role)
-window.location="dashboard.html"
-},
-async register(){
-await fetch(API+"/api/register",{
-method:"POST",
-body: JSON.stringify({name:"user",...this})
-})
-alert("registered")
+return {
+  isLogin: true,
+  name: "",
+  email: "",
+  password: ""
 }
+},
+
+methods: {
+
+async login() {
+  if (!this.email || !this.password) {
+    alert("Isi email & password")
+    return
+  }
+
+  const res = await fetch(API+"/api/login",{
+    method:"POST",
+    body: JSON.stringify({
+      email: this.email,
+      password: this.password
+    })
+  })
+
+  const data = await res.json()
+
+  if (!data.token) {
+    alert("Login gagal")
+    return
+  }
+
+  localStorage.setItem("token",data.token)
+  localStorage.setItem("role",data.role)
+
+  window.location="dashboard.html"
+},
+
+async register() {
+  if (!this.name || !this.email || !this.password) {
+    alert("Lengkapi semua field")
+    return
+  }
+
+  await fetch(API+"/api/register",{
+    method:"POST",
+    body: JSON.stringify({
+      name: this.name,
+      email: this.email,
+      password: this.password
+    })
+  })
+
+  alert("Register berhasil!")
+  this.isLogin = true
 }
+
+}
+
 }).mount("#app")
 </script>
 
 <style>
-.input{width:100%;padding:10px;background:#020617;border:1px solid #1e293b;border-radius:8px}
-.btn{width:100%;background:#2563eb;padding:10px;border-radius:8px}
+.input{
+  width:100%;
+  padding:12px;
+  background:#020617;
+  border:1px solid #1e293b;
+  border-radius:10px;
+  font-size:14px;
+}
+
+.btn{
+  width:100%;
+  background:#2563eb;
+  padding:12px;
+  border-radius:10px;
+  font-weight:bold;
+  transition:0.2s;
+}
+
+.btn:active{
+  transform:scale(0.98);
+}
 </style>
 
 </body>
