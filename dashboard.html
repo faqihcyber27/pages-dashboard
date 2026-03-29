@@ -9,41 +9,59 @@
 
 <body class="bg-slate-950 text-white">
 
-<div id="app" class="p-4 space-y-4">
+<div id="app" class="flex min-h-screen">
 
-<!-- HEADER -->
-<div class="flex justify-between items-center">
-  <div>
-    <h1 class="text-xl font-bold">VM Dashboard</h1>
-    <p class="text-sm text-slate-400">{{ user.name }}</p>
-  </div>
-  <button @click="logout" class="text-red-400 text-sm">Logout</button>
+<!-- SIDEBAR -->
+<div class="w-20 bg-slate-900 flex flex-col items-center py-4 space-y-6">
+
+<div class="text-xl font-bold">⚡</div>
+
+<div class="text-slate-400 text-xs text-center">
+VM
 </div>
 
-<!-- SEARCH -->
-<input v-model="search" placeholder="Search VM / IP..." class="input"/>
+</div>
+
+<!-- MAIN -->
+<div class="flex-1 p-4 space-y-4">
+
+<!-- TOPBAR -->
+<div class="flex justify-between items-center">
+
+<input v-model="search" placeholder="Search VM / IP..."
+class="input w-2/3"/>
+
+<button @click="logout" class="text-red-400 text-sm">Logout</button>
+
+</div>
 
 <!-- SUMMARY -->
-<div class="grid grid-cols-3 gap-3 text-center">
+<div class="grid grid-cols-3 gap-3">
 
-  <div class="card">
-    <p class="text-sm text-slate-400">Total</p>
-    <p class="text-xl font-bold">{{ vms.length }}</p>
-  </div>
+<div class="card">
+<p>Total VM</p>
+<p class="text-2xl font-bold">{{ vms.length }}</p>
+</div>
 
-  <div class="card">
-    <p class="text-sm text-slate-400">PROD</p>
-    <p class="text-xl font-bold text-green-400">
-      {{ countEnv('PROD') }}
-    </p>
-  </div>
+<div class="card border border-green-500">
+<p>PROD</p>
+<p class="text-2xl text-green-400">{{ countEnv('PROD') }}</p>
+</div>
 
-  <div class="card">
-    <p class="text-sm text-slate-400">DEV</p>
-    <p class="text-xl font-bold text-blue-400">
-      {{ countEnv('DEV') }}
-    </p>
-  </div>
+<div class="card border border-blue-500">
+<p>DEV</p>
+<p class="text-2xl text-blue-400">{{ countEnv('DEV') }}</p>
+</div>
+
+</div>
+
+<!-- FILTER -->
+<div class="flex gap-2 text-sm">
+
+<button @click="filterEnv='ALL'" class="chip">ALL</button>
+<button @click="filterEnv='PROD'" class="chip">PROD</button>
+<button @click="filterEnv='DEV'" class="chip">DEV</button>
+<button @click="filterEnv='UAT'" class="chip">UAT</button>
 
 </div>
 
@@ -68,8 +86,8 @@
 <input v-model="form.storage" placeholder="Storage" class="input"/>
 
 <div v-for="(d,i) in form.disk" class="flex gap-2">
-  <input v-model="form.disk[i]" class="input"/>
-  <button @click="removeDisk(i)">X</button>
+<input v-model="form.disk[i]" class="input"/>
+<button @click="removeDisk(i)">X</button>
 </div>
 
 <button @click="addDisk" class="text-blue-400 text-sm">+ Disk</button>
@@ -77,61 +95,65 @@
 
 </div>
 
-<!-- VM LIST -->
-<div class="space-y-3">
+<!-- TABLE -->
+<div class="bg-slate-900 rounded-xl overflow-hidden">
 
-<div v-for="vm in filteredVMs" class="bg-slate-900 p-4 rounded-xl space-y-2 shadow">
+<table class="w-full text-xs">
 
-  <!-- TOP -->
-  <div class="flex justify-between items-center">
-    <div>
-      <p class="font-bold">{{ vm.name }}</p>
-      <p class="text-sm text-slate-400">{{ vm.ip }}</p>
-    </div>
+<thead class="bg-slate-800 text-slate-400">
+<tr>
+<th class="p-2">VM</th>
+<th>CPU</th>
+<th>MEM</th>
+<th>ENV</th>
+<th>CLUSTER</th>
+<th>HOST</th>
+<th>DISK</th>
+<th v-if="user.role==='admin'">ACT</th>
+</tr>
+</thead>
 
-    <span class="badge"
-      :class="{
-        'bg-green-500': vm.environment==='PROD',
-        'bg-blue-500': vm.environment==='DEV',
-        'bg-yellow-500': vm.environment==='UAT'
-      }">
-      {{ vm.environment }}
-    </span>
-  </div>
+<tbody>
 
-  <!-- GRID INFO -->
-  <div class="grid grid-cols-2 gap-2 text-xs">
+<tr v-for="vm in filteredVMs" class="border-t border-slate-800">
 
-    <div>Function: {{ vm.function }}</div>
-    <div>Cluster: {{ vm.cluster }}</div>
+<td class="p-2">
+<p class="font-bold">{{vm.name}}</p>
+<p class="text-[10px] text-slate-400">{{vm.ip}}</p>
+</td>
 
-    <div>Host: {{ vm.host }}</div>
-    <div>OS: {{ vm.os }}</div>
+<td>{{vm.cpu}}</td>
+<td>{{vm.memory}}</td>
 
-    <div>CPU: {{ vm.cpu }}</div>
-    <div>Memory: {{ vm.memory }}</div>
+<td>
+<span class="badge"
+:class="{
+'bg-green-500': vm.environment==='PROD',
+'bg-blue-500': vm.environment==='DEV',
+'bg-yellow-500': vm.environment==='UAT'
+}">
+{{vm.environment}}
+</span>
+</td>
 
-    <div>VLAN: {{ vm.vlan }}</div>
-    <div>Storage: {{ vm.storage }}</div>
+<td>{{vm.cluster}}</td>
+<td class="text-[10px]">{{vm.host}}</td>
 
-  </div>
+<td>
+<span v-for="(d,i) in vm.disk" class="text-[10px] block">
+D{{i+1}}: {{d}}
+</span>
+</td>
 
-  <!-- DISK -->
-  <div class="text-xs">
-    <p class="text-slate-400 mb-1">Disk:</p>
-    <div class="flex flex-wrap gap-2">
-      <span v-for="(d,i) in vm.disk" class="badge bg-slate-700">
-        Disk {{i+1}}: {{d}} GB
-      </span>
-    </div>
-  </div>
+<td v-if="user.role==='admin'">
+<button @click="deleteVM(vm.id)" class="text-red-400">X</button>
+</td>
 
-  <!-- ACTION -->
-  <button v-if="user.role==='admin'"
-    @click="deleteVM(vm.id)"
-    class="text-red-400 text-xs">
-    Delete
-  </button>
+</tr>
+
+</tbody>
+
+</table>
 
 </div>
 
@@ -150,6 +172,7 @@ return{
 user:{},
 vms:[],
 search:"",
+filterEnv:"ALL",
 showForm:false,
 form:{
 name:"",ip:"",function:"",environment:"",
@@ -161,10 +184,16 @@ os:"",vlan:"",storage:"",disk:[]
 
 computed:{
 filteredVMs(){
-return this.vms.filter(v=>
+return this.vms.filter(v=>{
+const matchSearch =
 (v.name||"").toLowerCase().includes(this.search.toLowerCase()) ||
 (v.ip||"").includes(this.search)
-)
+
+const matchEnv =
+this.filterEnv==="ALL" || v.environment===this.filterEnv
+
+return matchSearch && matchEnv
+})
 }
 },
 
@@ -177,8 +206,8 @@ this.loadVM()
 
 methods:{
 
-countEnv(env){
-return this.vms.filter(v=>v.environment===env).length
+countEnv(e){
+return this.vms.filter(v=>v.environment===e).length
 },
 
 async loadVM(){
@@ -190,18 +219,11 @@ addDisk(){this.form.disk.push("")},
 removeDisk(i){this.form.disk.splice(i,1)},
 
 async addVM(){
-const res=await fetch(API+"/vms",{
+await fetch(API+"/vms",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify(this.form)
 })
-
-if(!res.ok){
-alert("Gagal")
-return
-}
-
-alert("Berhasil")
 
 this.showForm=false
 this.form={name:"",ip:"",function:"",environment:"",cluster:"",host:"",cpu:"",memory:"",os:"",vlan:"",storage:"",disk:[]}
@@ -210,7 +232,6 @@ this.loadVM()
 },
 
 async deleteVM(id){
-if(!confirm("Delete?")) return
 await fetch(API+"/vms/"+id,{method:"DELETE"})
 this.loadVM()
 },
@@ -227,31 +248,37 @@ location="index.html"
 
 <style>
 .input{
-width:100%;
 padding:10px;
 background:#020617;
 border:1px solid #1e293b;
 border-radius:8px;
+width:100%;
 }
 
 .btn{
-width:100%;
 background:#2563eb;
 padding:10px;
-border-radius:10px;
+border-radius:8px;
+width:100%;
 font-weight:bold;
 }
 
 .card{
 background:#020617;
-padding:10px;
-border-radius:10px;
+padding:12px;
+border-radius:12px;
 }
 
 .badge{
-padding:4px 8px;
+padding:3px 6px;
 border-radius:6px;
 font-size:10px;
+}
+
+.chip{
+background:#020617;
+padding:6px 10px;
+border-radius:6px;
 }
 </style>
 
