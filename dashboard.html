@@ -5,192 +5,157 @@
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-
 </head>
 
 <body class="bg-slate-950 text-white">
 
 <div id="app" class="p-4 space-y-4">
 
-  <!-- HEADER -->
-  <div class="flex justify-between items-center">
-    <div>
-      <h1 class="text-xl font-bold">VM Dashboard</h1>
-      <p class="text-sm text-slate-400">
-        {{ user.name }} ({{ user.role }})
-      </p>
-    </div>
-
-    <button @click="logout" class="text-red-400 text-sm">
-      Logout
-    </button>
+<!-- HEADER -->
+<div class="flex justify-between">
+  <div>
+    <h1 class="text-xl font-bold">VM Dashboard</h1>
+    <p class="text-sm">{{ user.name }} ({{ user.role }})</p>
   </div>
+  <button @click="logout" class="text-red-400">Logout</button>
+</div>
 
-  <!-- SEARCH -->
-  <input v-model="search" placeholder="Search VM / IP..." class="input w-full"/>
+<!-- SEARCH -->
+<input v-model="search" placeholder="Search VM/IP" class="input"/>
 
-  <!-- ADD BUTTON -->
-  <button 
-    v-if="user.role === 'admin'" 
-    @click="toggleForm"
-    class="btn">
-    {{ showForm ? "Close Form" : "+ Add VM" }}
-  </button>
+<!-- ADD -->
+<button v-if="user.role==='admin'" @click="showForm=!showForm" class="btn">
+  Add VM
+</button>
 
-  <!-- FORM -->
-  <div v-if="showForm" class="bg-slate-900 p-4 rounded-xl space-y-2">
+<!-- FORM -->
+<div v-if="showForm" class="bg-slate-900 p-3 rounded space-y-2">
 
-    <input v-model="form.name" placeholder="VM Name" class="input"/>
-    <input v-model="form.ip" placeholder="IP Address" class="input"/>
-    <input v-model="form.cluster" placeholder="Cluster" class="input"/>
+<input v-model="form.name" placeholder="Name" class="input"/>
+<input v-model="form.ip" placeholder="IP" class="input"/>
+<input v-model="form.function" placeholder="Function" class="input"/>
+<input v-model="form.environment" placeholder="Environment" class="input"/>
+<input v-model="form.cluster" placeholder="Cluster" class="input"/>
+<input v-model="form.host" placeholder="Host" class="input"/>
+<input v-model="form.cpu" placeholder="CPU" class="input"/>
+<input v-model="form.memory" placeholder="Memory" class="input"/>
+<input v-model="form.os" placeholder="OS" class="input"/>
+<input v-model="form.vlan" placeholder="VLAN" class="input"/>
+<input v-model="form.storage" placeholder="Storage" class="input"/>
 
-    <button @click="addVM" class="btn">Save</button>
+<div v-for="(d,i) in form.disk" class="flex gap-2">
+  <input v-model="form.disk[i]" class="input"/>
+  <button @click="removeDisk(i)">X</button>
+</div>
 
+<button @click="addDisk">+ Disk</button>
+<button @click="addVM" class="btn">Save</button>
+
+</div>
+
+<!-- TABLE -->
+<div class="overflow-x-auto">
+<table class="w-full text-sm">
+
+<tr>
+<th>Name</th>
+<th>IP</th>
+<th>Func</th>
+<th>Env</th>
+<th>Cluster</th>
+<th>Disk</th>
+<th v-if="user.role==='admin'">Action</th>
+</tr>
+
+<tr v-for="vm in filteredVMs">
+<td>{{vm.name}}</td>
+<td>{{vm.ip}}</td>
+<td>{{vm.function}}</td>
+<td>{{vm.environment}}</td>
+<td>{{vm.cluster}}</td>
+<td>
+  <div v-for="(d,i) in vm.disk">
+    D{{i+1}}: {{d}}
   </div>
+</td>
 
-  <!-- TABLE -->
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm">
+<td v-if="user.role==='admin'">
+  <button @click="deleteVM(vm.id)">Delete</button>
+</td>
+</tr>
 
-      <thead>
-        <tr class="border-b border-slate-700 text-left">
-          <th class="p-2">Name</th>
-          <th class="p-2">IP</th>
-          <th class="p-2">Cluster</th>
-          <th class="p-2" v-if="user.role==='admin'">Action</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        <tr 
-          v-for="vm in filteredVMs" 
-          :key="vm.id"
-          class="border-b border-slate-800"
-        >
-          <td class="p-2">{{ vm.name }}</td>
-          <td class="p-2 text-blue-400">{{ vm.ip }}</td>
-          <td class="p-2">{{ vm.cluster }}</td>
-
-          <td class="p-2" v-if="user.role==='admin'">
-            <button @click="deleteVM(vm.id)" class="text-red-400">
-              Delete
-            </button>
-          </td>
-        </tr>
-      </tbody>
-
-    </table>
-  </div>
-
-  <!-- EMPTY -->
-  <div v-if="filteredVMs.length === 0" class="text-center text-slate-500 mt-6">
-    Tidak ada data VM
-  </div>
+</table>
+</div>
 
 </div>
 
 <script>
-const API = "https://worker-dashboard.jihadwajib68.workers.dev"
-const { createApp } = Vue
+const API="https://worker-dashboard.jihadwajib68.workers.dev"
+const {createApp}=Vue
 
 createApp({
 
 data(){
 return{
-  user:{},
-  vms:[],
-  search:"",
-  showForm:false,
-
-  form:{
-    name:"",
-    ip:"",
-    cluster:""
-  }
+user:{},
+vms:[],
+search:"",
+showForm:false,
+form:{
+name:"",ip:"",function:"",environment:"",
+cluster:"",host:"",cpu:"",memory:"",
+os:"",vlan:"",storage:"",
+disk:[]
+}
 }
 },
 
 computed:{
 filteredVMs(){
-  return this.vms.filter(vm =>
-    (vm.name || "").toLowerCase().includes(this.search.toLowerCase()) ||
-    (vm.ip || "").includes(this.search)
-  )
+return this.vms.filter(v=>
+(v.name||"").toLowerCase().includes(this.search.toLowerCase()) ||
+(v.ip||"").includes(this.search)
+)
 }
 },
 
 mounted(){
-  const data = localStorage.getItem("user")
-
-  if(!data){
-    window.location.href = "index.html"
-    return
-  }
-
-  this.user = JSON.parse(data)
-  this.loadVM()
+const u=localStorage.getItem("user")
+if(!u) location="index.html"
+this.user=JSON.parse(u)
+this.loadVM()
 },
 
 methods:{
 
-toggleForm(){
-  this.showForm = !this.showForm
-},
-
 async loadVM(){
-  try{
-    const res = await fetch(API + "/vms")
-    const data = await res.json()
-
-    this.vms = Array.isArray(data) ? data : []
-  }catch{
-    alert("Gagal load data VM")
-  }
+const r=await fetch(API+"/vms")
+this.vms=await r.json()
 },
+
+addDisk(){this.form.disk.push("")},
+removeDisk(i){this.form.disk.splice(i,1)},
 
 async addVM(){
-  if(!this.form.name || !this.form.ip){
-    alert("Isi minimal name & ip")
-    return
-  }
-
-  try{
-    await fetch(API + "/vms",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify(this.form)
-    })
-
-    this.showForm = false
-    this.form = {name:"",ip:"",cluster:""}
-
-    this.loadVM()
-
-  }catch{
-    alert("Gagal tambah VM")
-  }
+await fetch(API+"/vms",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(this.form)
+})
+this.showForm=false
+this.form={name:"",ip:"",function:"",environment:"",cluster:"",host:"",cpu:"",memory:"",os:"",vlan:"",storage:"",disk:[]}
+this.loadVM()
 },
 
 async deleteVM(id){
-  if(!confirm("Hapus VM ini?")) return
-
-  try{
-    await fetch(API + "/vms/"+id,{
-      method:"DELETE"
-    })
-
-    this.loadVM()
-
-  }catch{
-    alert("Gagal delete")
-  }
+if(!confirm("Delete?")) return
+await fetch(API+"/vms/"+id,{method:"DELETE"})
+this.loadVM()
 },
 
 logout(){
-  localStorage.clear()
-  window.location.href = "index.html"
+localStorage.clear()
+location="index.html"
 }
 
 }
@@ -199,21 +164,8 @@ logout(){
 </script>
 
 <style>
-.input{
-  width:100%;
-  padding:12px;
-  background:#020617;
-  border:1px solid #1e293b;
-  border-radius:10px;
-}
-
-.btn{
-  width:100%;
-  background:#2563eb;
-  padding:12px;
-  border-radius:10px;
-  font-weight:bold;
-}
+.input{width:100%;padding:10px;background:#020617;border:1px solid #1e293b;border-radius:8px}
+.btn{width:100%;background:#2563eb;padding:10px;border-radius:8px}
 </style>
 
 </body>
