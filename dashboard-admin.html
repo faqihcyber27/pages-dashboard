@@ -240,7 +240,7 @@ const workbook = XLSX.read(data)
 const sheet = workbook.Sheets[workbook.SheetNames[0]]
 const json = XLSX.utils.sheet_to_json(sheet)
 
-for(const row of json){
+const payload = json.map(row=>{
 
 let vm = {
 name: row.name || "",
@@ -258,27 +258,27 @@ storage: row.storage || "",
 disk: []
 }
 
-// HANDLE MULTI DISK
 Object.keys(row).forEach(k=>{
 if(k.toLowerCase().includes("disk") && row[k]){
 vm.disk.push(String(row[k]))
 }
 })
 
-await fetch(API+"/vms",{
+return vm
+})
+
+// 🚀 KIRIM SEKALI
+await fetch(API+"/vms/bulk",{
 method:"POST",
 headers:{
 "Content-Type":"application/json",
 "role":"admin"
 },
-body:JSON.stringify(vm)
+body:JSON.stringify(payload)
 })
 
-}
-
-alert("Import Excel berhasil 🚀")
+alert("Import selesai 🚀")
 this.loadVM()
-
 }
 
 }
