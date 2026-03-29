@@ -34,7 +34,7 @@ Loading...
 
 <div class="flex items-center gap-3">
 <span class="text-xs bg-slate-800 px-3 py-1 rounded-lg">
-👤 {{user.name || 'User'}}
+👤 {{user.name}}
 </span>
 
 <button @click="logout" class="text-red-400 text-xs">
@@ -177,22 +177,31 @@ async mounted(){
 
 try{
 
-// SAFE USER
+// 🔥 AMBIL USER
 const raw = localStorage.getItem("user")
-this.user = raw ? JSON.parse(raw) : {}
 
-if(!this.user.email){
-this.error="Session habis, login ulang..."
-setTimeout(()=>window.location="index.html",1500)
+if(!raw){
+window.location="index.html"
 return
 }
 
-// FETCH VM
+this.user = JSON.parse(raw)
+
+// 🔥 VALIDASI ROLE USER
+if(this.user.role !== "user"){
+window.location="dashboard-admin.html"
+return
+}
+
+// 🔥 LOAD VM
 const res = await fetch(API+"/vms")
 
 if(!res.ok) throw new Error("API error")
 
-this.vms = await res.json()
+const data = await res.json()
+
+// safety
+this.vms = Array.isArray(data) ? data : []
 
 }catch(e){
 console.log(e)
