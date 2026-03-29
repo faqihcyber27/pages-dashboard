@@ -11,24 +11,20 @@
 
 <div id="app" class="p-4 space-y-4">
 
-<!-- HEADER -->
 <div class="flex justify-between">
   <div>
     <h1 class="text-xl font-bold">VM Dashboard</h1>
-    <p class="text-sm">{{ user.name }} ({{ user.role }})</p>
+    <p>{{ user.name }} ({{ user.role }})</p>
   </div>
   <button @click="logout" class="text-red-400">Logout</button>
 </div>
 
-<!-- SEARCH -->
 <input v-model="search" placeholder="Search VM/IP" class="input"/>
 
-<!-- ADD -->
 <button v-if="user.role==='admin'" @click="showForm=!showForm" class="btn">
-  Add VM
+Add VM
 </button>
 
-<!-- FORM -->
 <div v-if="showForm" class="bg-slate-900 p-3 rounded space-y-2">
 
 <input v-model="form.name" placeholder="Name" class="input"/>
@@ -53,16 +49,11 @@
 
 </div>
 
-<!-- TABLE -->
-<div class="overflow-x-auto">
 <table class="w-full text-sm">
-
 <tr>
 <th>Name</th>
 <th>IP</th>
-<th>Func</th>
 <th>Env</th>
-<th>Cluster</th>
 <th>Disk</th>
 <th v-if="user.role==='admin'">Action</th>
 </tr>
@@ -70,22 +61,18 @@
 <tr v-for="vm in filteredVMs">
 <td>{{vm.name}}</td>
 <td>{{vm.ip}}</td>
-<td>{{vm.function}}</td>
 <td>{{vm.environment}}</td>
-<td>{{vm.cluster}}</td>
 <td>
-  <div v-for="(d,i) in vm.disk">
-    D{{i+1}}: {{d}}
-  </div>
+<div v-for="(d,i) in vm.disk">
+D{{i+1}}: {{d}}
+</div>
 </td>
 
 <td v-if="user.role==='admin'">
-  <button @click="deleteVM(vm.id)">Delete</button>
+<button @click="deleteVM(vm.id)">Delete</button>
 </td>
 </tr>
-
 </table>
-</div>
 
 </div>
 
@@ -137,13 +124,27 @@ addDisk(){this.form.disk.push("")},
 removeDisk(i){this.form.disk.splice(i,1)},
 
 async addVM(){
-await fetch(API+"/vms",{
+console.log("FORM:",this.form)
+
+const res=await fetch(API+"/vms",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify(this.form)
 })
+
+const data=await res.json()
+console.log("RESPONSE:",data)
+
+if(!res.ok){
+alert(data.error||"Gagal")
+return
+}
+
+alert("VM berhasil ditambah")
+
 this.showForm=false
 this.form={name:"",ip:"",function:"",environment:"",cluster:"",host:"",cpu:"",memory:"",os:"",vlan:"",storage:"",disk:[]}
+
 this.loadVM()
 },
 
