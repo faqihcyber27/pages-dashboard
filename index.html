@@ -67,6 +67,7 @@ createApp({
   methods: {
 
     async login() {
+
   if (!this.email || !this.password) {
     alert("Isi email & password")
     return
@@ -86,17 +87,18 @@ createApp({
 
     const data = await res.json()
 
+    console.log("LOGIN RESPONSE:", data)
+
     if (data.error) {
       alert(data.error)
       return
     }
 
-    // simpan user
-    localStorage.setItem("user", JSON.stringify(data.user))
+    // ✅ INI YANG PENTING
+    localStorage.setItem("role", data.role)
 
-    alert("Login berhasil")
+    alert("Login berhasil sebagai " + data.role)
 
-    // 🔥 WAJIB INI
     window.location.href = "dashboard.html"
 
   } catch (err) {
