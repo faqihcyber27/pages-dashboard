@@ -1,39 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script src="https://unpkg.com/vue@3"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-slate-950 text-white p-6">
+<body class="bg-slate-950 text-white">
 
-<div id="app">
+<div id="app" class="p-4 space-y-4">
 
-<div class="flex justify-between mb-4">
-<input v-model="search" @input="loadVM" placeholder="Search..." class="input w-1/3"/>
+  <!-- HEADER -->
+  <div class="flex justify-between items-center">
+    <h1 class="text-xl font-bold">VM Dashboard</h1>
+    <button @click="logout" class="text-red-400">Logout</button>
+  </div>
 
-<button v-if="role==='admin'" @click="addVM" class="btn px-4">+ Add</button>
-</div>
+  <!-- SEARCH -->
+  <input v-model="search" @input="loadVM" placeholder="Search IP / VM..." class="input w-full"/>
 
-<table class="w-full text-sm">
-<tr><th>Name</th><th>IP</th><th>Cluster</th><th v-if="role==='admin'">Action</th></tr>
+  <!-- ADD BUTTON -->
+  <button v-if="role==='admin'" @click="addVM" class="btn">
+    + Add VM
+  </button>
 
-<tr v-for="vm in vms">
-<td>{{vm.name}}</td>
-<td>{{vm.ip}}</td>
-<td>{{vm.cluster}}</td>
+  <!-- TABLE -->
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm mt-2">
+      <tr class="text-left border-b border-slate-700">
+        <th>Name</th>
+        <th>IP</th>
+        <th>Cluster</th>
+        <th v-if="role==='admin'">Action</th>
+      </tr>
 
-<td v-if="role==='admin'">
-<button @click="editVM(vm)">Edit</button>
-<button @click="deleteVM(vm.id)" class="text-red-400">Delete</button>
-</td>
-</tr>
-</table>
+      <tr v-for="vm in vms" class="border-b border-slate-800">
+        <td>{{ vm.name }}</td>
+        <td class="text-blue-400">{{ vm.ip }}</td>
+        <td>{{ vm.cluster }}</td>
+
+        <td v-if="role==='admin'">
+          <button @click="editVM(vm)" class="text-yellow-400">Edit</button>
+          <button @click="deleteVM(vm.id)" class="text-red-400 ml-2">Delete</button>
+        </td>
+      </tr>
+    </table>
+  </div>
 
 </div>
 
 <script>
-const API="https://worker-dashboard.jihadwajib68.workers.dev"
+const API = "https://worker-dashboard.jihadwajib68.workers.dev"
 
 Vue.createApp({
 data(){
@@ -44,25 +61,52 @@ role:localStorage.getItem("role")
 }
 },
 
+async mounted(){
+const token = localStorage.getItem("token")
+
+if(!token){
+window.location="index.html"
+return
+}
+
+this.loadVM()
+},
+
 methods:{
+
 async loadVM(){
-const token=localStorage.getItem("token")
-const res=await fetch(API+"/api/vms?q="+this.search,{
-headers:{Authorization:"Bearer "+token}
+const token = localStorage.getItem("token")
+
+const res = await fetch(API+"/api/vms?q="+this.search,{
+headers:{ Authorization:"Bearer "+token }
 })
-this.vms=await res.json()
+
+if(res.status === 401){
+this.logout()
+return
+}
+
+this.vms = await res.json()
 },
 
 async addVM(){
-const token=localStorage.getItem("token")
+const token = localStorage.getItem("token")
 
 await fetch(API+"/api/vms",{
 method:"POST",
-headers:{Authorization:"Bearer "+token},
+headers:{ Authorization:"Bearer "+token },
 body:JSON.stringify({
 name:"vm-new",
 ip:"10.0.0.1",
-cluster:"A"
+cluster:"A",
+function:"app",
+host:"host1",
+cpu:2,
+memory:4,
+disk:100,
+os:"linux",
+vlan:"10",
+environment:"dev"
 })
 })
 
@@ -70,11 +114,11 @@ this.loadVM()
 },
 
 async editVM(vm){
-const token=localStorage.getItem("token")
+const token = localStorage.getItem("token")
 
 await fetch(API+"/api/vms/"+vm.id,{
 method:"PUT",
-headers:{Authorization:"Bearer "+token},
+headers:{ Authorization:"Bearer "+token },
 body:JSON.stringify(vm)
 })
 
@@ -82,26 +126,39 @@ this.loadVM()
 },
 
 async deleteVM(id){
-const token=localStorage.getItem("token")
+const token = localStorage.getItem("token")
 
 await fetch(API+"/api/vms/"+id,{
 method:"DELETE",
-headers:{Authorization:"Bearer "+token}
+headers:{ Authorization:"Bearer "+token }
 })
 
 this.loadVM()
-}
 },
 
-mounted(){
-this.loadVM()
+logout(){
+localStorage.clear()
+window.location="index.html"
 }
+
+}
+
 }).mount("#app")
 </script>
 
 <style>
-.input{padding:10px;background:#020617;border:1px solid #1e293b;border-radius:8px}
-.btn{background:#2563eb;padding:10px;border-radius:8px}
+.input{
+  padding:12px;
+  background:#020617;
+  border:1px solid #1e293b;
+  border-radius:10px;
+}
+.btn{
+  width:100%;
+  background:#2563eb;
+  padding:12px;
+  border-radius:10px;
+}
 </style>
 
 </body>
