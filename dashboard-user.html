@@ -2,46 +2,85 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
 <script src="https://unpkg.com/vue@3"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+
 </head>
 
 <body class="bg-[#020617] text-white">
 
-<div id="app" class="p-4 space-y-4">
+<div id="app" class="min-h-screen p-4 space-y-4">
 
-<h1 class="text-lg font-bold">VM Dashboard</h1>
+<!-- HEADER -->
+<div class="flex justify-between items-center">
 
-<!-- CARD -->
-<div class="grid gap-3">
+  <div>
+    <h1 class="text-lg font-bold">VM Dashboard</h1>
+    <p class="text-xs text-slate-400">Infrastructure View</p>
+  </div>
 
-<div v-for="vm in vms" class="card">
+  <button @click="logout" class="text-xs text-red-400">
+    Logout
+  </button>
 
-<div class="flex justify-between">
+</div>
+
+<!-- SEARCH -->
+<input v-model="search" placeholder="Search VM / IP"
+class="input"/>
+
+<!-- FILTER -->
+<div class="flex gap-2 text-xs">
+<button @click="filter='ALL'" :class="chip('ALL')">ALL</button>
+<button @click="filter='PRODUCTION'" :class="chip('PRODUCTION')">PROD</button>
+<button @click="filter='GO-PRODUCTION'" :class="chip('GO-PRODUCTION')">GO-PROD</button>
+</div>
+
+<!-- LIST -->
+<div class="space-y-3">
+
+<div v-for="vm in filteredVMs" class="card">
+
+<!-- TOP -->
+<div class="flex justify-between items-center">
+
 <div>
-<p class="font-semibold">{{vm.name}}</p>
-<p class="text-xs text-slate-400">{{vm.ip}}</p>
+<p class="font-semibold text-sm">{{vm.name}}</p>
+<p class="text-[11px] text-slate-400">{{vm.ip}}</p>
 </div>
 
-<span class="badge">{{vm.environment}}</span>
+<span 
+class="badge"
+:class="vm.environment==='PRODUCTION'?'prod':'goprod'">
+{{vm.environment}}
+</span>
+
 </div>
 
-<div class="grid grid-cols-2 gap-2 text-xs mt-3">
+<!-- MID GRID -->
+<div class="grid grid-cols-2 gap-3 text-xs mt-3">
+
+<div><span class="label">Platform</span>{{vm.platform}}</div>
+<div><span class="label">Function</span>{{vm.function}}</div>
 
 <div><span class="label">CPU</span>{{vm.cpu}}</div>
-<div><span class="label">Memory</span>{{vm.memory}}</div>
+<div><span class="label">Memory</span>{{vm.memory}} GB</div>
 
 <div><span class="label">Cluster</span>{{vm.cluster}}</div>
 <div><span class="label">Host</span>{{vm.host}}</div>
 
 <div><span class="label">OS</span>{{vm.os}}</div>
+<div><span class="label">VLAN</span>{{vm.vlan}}</div>
+
 <div><span class="label">Storage</span>{{vm.storage}}</div>
 
 </div>
 
-<div class="flex gap-1 mt-2">
+<!-- DISK -->
+<div class="mt-3 flex flex-wrap gap-2">
 <span v-for="(d,i) in vm.disk" class="disk">
-Disk {{i+1}}: {{d}}
+Disk {{i+1}}: {{d}} GB
 </span>
 </div>
 
@@ -55,9 +94,24 @@ Disk {{i+1}}: {{d}}
 const API="https://worker-dashboard.jihadwajib68.workers.dev"
 
 Vue.createApp({
+
 data(){
 return{
-vms:[]
+vms:[],
+search:"",
+filter:"ALL"
+}
+},
+
+computed:{
+filteredVMs(){
+return this.vms.filter(v=>{
+return (
+(v.name||"").toLowerCase().includes(this.search.toLowerCase()) ||
+(v.ip||"").includes(this.search)
+) &&
+(this.filter==="ALL" || v.environment===this.filter)
+})
 }
 },
 
@@ -66,19 +120,88 @@ this.loadVM()
 },
 
 methods:{
+
 async loadVM(){
-const r=await fetch(API+"/vms")
-this.vms=await r.json()
+const r = await fetch(API+"/vms")
+this.vms = await r.json()
+},
+
+chip(e){
+return this.filter===e ? "chip active":"chip"
+},
+
+logout(){
+localStorage.clear()
+window.location="index.html"
 }
+
 }
+
 }).mount("#app")
 </script>
 
 <style>
-.card{background:#020617;border:1px solid #1e293b;border-radius:12px;padding:12px}
-.label{display:block;color:#64748b;font-size:10px}
-.badge{background:#1e293b;padding:3px 6px;border-radius:6px;font-size:10px}
-.disk{background:#020617;border:1px solid #334155;padding:2px 6px;border-radius:6px;font-size:10px}
+.input{
+width:100%;
+padding:12px;
+background:#020617;
+border:1px solid #1e293b;
+border-radius:10px;
+}
+
+/* CARD */
+.card{
+background:linear-gradient(180deg,#020617,#020617);
+border:1px solid #1e293b;
+border-radius:14px;
+padding:14px;
+box-shadow:0 0 0 1px rgba(255,255,255,0.02);
+}
+
+/* LABEL */
+.label{
+display:block;
+font-size:10px;
+color:#64748b;
+}
+
+/* BADGE */
+.badge{
+padding:4px 8px;
+border-radius:6px;
+font-size:10px;
+}
+
+.prod{
+background:#022c22;
+color:#4ade80;
+}
+
+.goprod{
+background:#3f1d02;
+color:#facc15;
+}
+
+/* DISK */
+.disk{
+background:#020617;
+border:1px solid #334155;
+padding:4px 8px;
+border-radius:6px;
+font-size:10px;
+}
+
+/* FILTER */
+.chip{
+padding:6px 10px;
+background:#020617;
+border-radius:6px;
+border:1px solid #1e293b;
+}
+
+.active{
+background:#2563eb;
+}
 </style>
 
 </body>
