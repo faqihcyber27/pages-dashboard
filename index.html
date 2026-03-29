@@ -60,47 +60,27 @@ return {
 }
 },
 
-async mounted() {
-  const token = localStorage.getItem("token")
-  if (!token) return
-
-  try {
-    const res = await fetch(API + "/api/vms", {
-      headers: { Authorization: "Bearer " + token }
-    })
-
-    if (res.status === 200) {
-      window.location = "dashboard.html"
-    }
-  } catch {
-    localStorage.clear()
-  }
-},
-
 methods: {
 
 async login() {
-  const res = await fetch(API + "/api/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      email: this.email,
-      password: this.password
-    })
-  })
-
-  const text = await res.text()
-  console.log("RAW:", text)
-
-  alert(text) // tampilkan langsung
-
   try {
-    const data = JSON.parse(text)
+    const res = await fetch(API + "/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: this.email,
+        password: this.password
+      })
+    })
 
-    if (!data.token) {
-      alert("Login gagal: " + (data.error || "unknown"))
+    const data = await res.json()
+
+    console.log("LOGIN:", data)
+
+    if (!res.ok) {
+      alert(data.error || "Login gagal")
       return
     }
 
@@ -109,31 +89,38 @@ async login() {
 
     window.location = "dashboard.html"
 
-  } catch {
-    alert("Response bukan JSON")
+  } catch (err) {
+    alert("Server error")
   }
 },
-  
+
 async register() {
-  if (!this.name || !this.email || !this.password) {
-    alert("Lengkapi semua field")
-    return
-  }
-
-  await fetch(API+"/api/register",{
-    method:"POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      name: this.name,
-      email: this.email,
-      password: this.password
+  try {
+    const res = await fetch(API + "/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: this.name,
+        email: this.email,
+        password: this.password
+      })
     })
-  })
 
-  alert("Register berhasil!")
-  this.isLogin = true
+    const data = await res.json()
+
+    if (!res.ok) {
+      alert(data.error || "Register gagal")
+      return
+    }
+
+    alert("Register berhasil!")
+    this.isLogin = true
+
+  } catch {
+    alert("Server error")
+  }
 }
 
 }
