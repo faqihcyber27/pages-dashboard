@@ -80,41 +80,40 @@ async mounted() {
 methods: {
 
 async login() {
-  if (!this.email || !this.password) {
-    alert("Isi email & password")
-    return
-  }
+  const res = await fetch(API + "/api/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email: this.email,
+      password: this.password
+    })
+  })
+
+  const text = await res.text()
+  console.log("RAW:", text)
+
+  alert(text) // tampilkan langsung
 
   try {
-    const res = await fetch(API+"/api/login",{
-      method:"POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email: this.email,
-        password: this.password
-      })
-    })
-
-    const data = await res.json()
-    console.log("LOGIN:", data)
+    const data = JSON.parse(text)
 
     if (!data.token) {
-      alert(data.error || "Login gagal")
+      alert("Login gagal: " + (data.error || "unknown"))
       return
     }
 
-    localStorage.setItem("token",data.token)
-    localStorage.setItem("role",data.role)
+    localStorage.setItem("token", data.token)
+    localStorage.setItem("role", data.role)
 
     window.location = "dashboard.html"
 
-  } catch (err) {
-    alert("Server error")
+  } catch {
+    alert("Response bukan JSON")
   }
 },
-
+  
 async register() {
   if (!this.name || !this.email || !this.password) {
     alert("Lengkapi semua field")
