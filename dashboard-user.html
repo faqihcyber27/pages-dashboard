@@ -2,27 +2,97 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
 <script src="https://unpkg.com/vue@3"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+
 </head>
 
 <body class="bg-[#020617] text-white">
 
 <div id="app" class="p-4 space-y-4">
 
-<div class="flex justify-between">
-<h1 class="text-lg font-bold">VM Dashboard</h1>
-<button @click="exportCSV" class="btn">Download CSV</button>
+<!-- HEADER -->
+<div class="flex justify-between items-center">
+  <div>
+    <h1 class="text-xl font-bold">VM Dashboard</h1>
+    <p class="text-xs text-slate-400">Infrastructure Overview</p>
+  </div>
+
+  <button @click="exportCSV" class="btn-main">
+    Download CSV
+  </button>
 </div>
 
-<div v-for="vm in vms" class="card">
+<!-- SEARCH -->
+<input v-model="search" placeholder="Search VM / IP" class="input"/>
 
-<p class="font-semibold">{{vm.name}}</p>
-<p class="text-xs text-slate-400">{{vm.ip}}</p>
+<!-- LIST -->
+<div class="space-y-3">
 
-<div class="grid grid-cols-2 text-xs mt-2">
-<div>{{vm.cpu}} CPU</div>
-<div>{{vm.memory}} GB</div>
+<div v-for="vm in filteredVMs" class="vm-card">
+
+<!-- HEADER -->
+<div class="flex justify-between items-start">
+
+<div>
+<p class="font-semibold text-sm">{{vm.name}}</p>
+<p class="text-[11px] text-slate-400">{{vm.ip}}</p>
+</div>
+
+<span 
+class="badge"
+:class="vm.environment==='PRODUCTION'?'prod':'goprod'">
+{{vm.environment}}
+</span>
+
+</div>
+
+<!-- COMPUTE -->
+<div class="section">
+<p class="section-title">Compute</p>
+
+<div class="grid grid-cols-3 text-xs gap-2">
+<div><span>CPU</span>{{vm.cpu}}</div>
+<div><span>Memory</span>{{vm.memory}} GB</div>
+<div><span>Platform</span>{{vm.platform}}</div>
+</div>
+</div>
+
+<!-- INFRA -->
+<div class="section">
+<p class="section-title">Infrastructure</p>
+
+<div class="grid grid-cols-2 text-xs gap-2">
+<div><span>Cluster</span>{{vm.cluster}}</div>
+<div><span>Host</span>{{vm.host}}</div>
+<div><span>VLAN</span>{{vm.vlan}}</div>
+<div><span>Storage</span>{{vm.storage}}</div>
+</div>
+</div>
+
+<!-- SYSTEM -->
+<div class="section">
+<p class="section-title">System</p>
+
+<div class="grid text-xs">
+<div><span>OS</span>{{vm.os}}</div>
+<div><span>Function</span>{{vm.function}}</div>
+</div>
+</div>
+
+<!-- DISK -->
+<div class="section">
+<p class="section-title">Disk</p>
+
+<div class="flex flex-wrap gap-2">
+<span v-for="(d,i) in vm.disk" class="disk">
+💽 {{d}} GB
+</span>
+</div>
+
+</div>
+
 </div>
 
 </div>
@@ -33,9 +103,28 @@
 const API="https://worker-dashboard.jihadwajib68.workers.dev"
 
 Vue.createApp({
-data(){return{vms:[]}},
 
-mounted(){this.loadVM()},
+data(){
+return{
+vms:[],
+search:""
+}
+},
+
+computed:{
+filteredVMs(){
+return this.vms.filter(v=>{
+return (
+(v.name||"").toLowerCase().includes(this.search.toLowerCase()) ||
+(v.ip||"").includes(this.search)
+)
+})
+}
+},
+
+mounted(){
+this.loadVM()
+},
 
 methods:{
 
@@ -45,26 +134,113 @@ this.vms=await r.json()
 },
 
 exportCSV(){
-let csv="name,ip,cpu,memory\n"
+
+let csv="name,ip,environment,platform,function,cluster,host,cpu,memory,os,vlan,storage,disk\n"
+
 this.vms.forEach(vm=>{
-csv+=`${vm.name},${vm.ip},${vm.cpu},${vm.memory}\n`
+const disk=(vm.disk||[]).join("|")
+
+csv += [
+vm.name,
+vm.ip,
+vm.environment,
+vm.platform,
+vm.function,
+vm.cluster,
+vm.host,
+vm.cpu,
+vm.memory,
+vm.os,
+vm.vlan,
+vm.storage,
+disk
+].join(",") + "\n"
 })
 
 const blob=new Blob([csv])
 const url=URL.createObjectURL(blob)
+
 const a=document.createElement("a")
 a.href=url
-a.download="vm.csv"
+a.download="vm-data.csv"
 a.click()
 }
 
 }
+
 }).mount("#app")
 </script>
 
 <style>
-.card{background:#020617;border:1px solid #1e293b;padding:12px;border-radius:10px}
-.btn{background:#2563eb;padding:8px;border-radius:6px}
+
+/* INPUT */
+.input{
+width:100%;
+padding:12px;
+background:#020617;
+border:1px solid #1e293b;
+border-radius:10px;
+}
+
+/* CARD */
+.vm-card{
+background:#020617;
+border:1px solid #1e293b;
+border-radius:14px;
+padding:14px;
+}
+
+/* SECTION */
+.section{
+margin-top:12px;
+}
+
+.section-title{
+font-size:10px;
+color:#64748b;
+margin-bottom:4px;
+}
+
+/* LABEL */
+span{
+display:block;
+font-size:10px;
+color:#64748b;
+}
+
+/* BADGE */
+.badge{
+padding:4px 8px;
+border-radius:6px;
+font-size:10px;
+}
+
+.prod{
+background:#022c22;
+color:#4ade80;
+}
+
+.goprod{
+background:#3f1d02;
+color:#facc15;
+}
+
+/* DISK */
+.disk{
+border:1px solid #334155;
+padding:4px 8px;
+border-radius:6px;
+font-size:10px;
+}
+
+/* BUTTON */
+.btn-main{
+background:#2563eb;
+padding:10px;
+border-radius:8px;
+font-size:12px;
+}
+
 </style>
 
 </body>
